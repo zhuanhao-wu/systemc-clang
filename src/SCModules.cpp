@@ -9,6 +9,32 @@ _os(os)
   TraverseDecl(tuDecl);
 }
 
+void SCModules::printLoopBounds(ForStmt* forStmt)
+{
+    Stmt* init = forStmt->getInit();
+    Expr* cond = forStmt->getCond();
+    Expr* inc = forStmt->getInc();
+}
+
+void SCModules::printBodyDataStructs(ForStmt* forStmt)
+{
+    Stmt* loopBody = forStmt->getBody();
+}
+
+bool SCModules::VisitStmt(Stmt * stmt)
+{
+    ForStmt *forStmt = dyn_cast_or_null<ForStmt>(stmt);
+    if (forStmt) {
+        _os << "VisitStmt class name: " << stmt->getStmtClassName() << "\n";
+
+        printLoopBounds(forStmt);
+
+        printBodyDataStructs(forStmt);
+    }
+
+    return true;
+}
+
 bool SCModules::VisitCXXRecordDecl(CXXRecordDecl * cxxDecl)
 {
   FindModule mod(cxxDecl, _os);
@@ -18,6 +44,9 @@ bool SCModules::VisitCXXRecordDecl(CXXRecordDecl * cxxDecl)
   }
   string modName = mod.getModuleName();
   _moduleMap.insert(modulePairType(modName, cxxDecl));
+
+  TraverseStmt(cxxDecl->getBody());
+
   return true;
 }
 

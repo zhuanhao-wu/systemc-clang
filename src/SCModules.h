@@ -18,10 +18,13 @@ namespace scpar {
     
     SCModules(TranslationUnitDecl *, llvm::raw_ostream &);
     virtual bool VisitCXXRecordDecl(CXXRecordDecl *);
+    virtual bool VisitStmt(Stmt *);
     moduleMapType getSystemCModulesMap();
     void printSystemCModulesMap();
   
   private:
+    void printBodyDataStructs(ForStmt* forStmt);
+    void printLoopBounds(ForStmt* forStmt);
     llvm::raw_ostream & _os;
     moduleMapType _moduleMap;
 
