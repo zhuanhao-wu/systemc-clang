@@ -69,6 +69,7 @@ namespace scpar {
      int fetchExprInc(Expr* expr);
      int processCondExpr(Expr* expr);
      void printLoopBounds(ForStmt* forStmt);
+     int extractValueFromIntegerLiteral(Expr* expr);
 
      forStmtGPUMacroMapType _forStmtGPUMacroMap; 
      CXXMethodDecl* _entryFunction;		 

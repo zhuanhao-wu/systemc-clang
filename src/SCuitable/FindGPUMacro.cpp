@@ -181,17 +181,12 @@ bool FindGPUMacro::VisitForStmt(ForStmt *fstmt) {
 int FindGPUMacro::fetchExprInc(Expr* expr) {
     int retVal = 0;
     bool negative = false;
-    expr->dump();
-    _os << "Expr class name: " << expr->getStmtClassName() << "\n";
     if (dyn_cast<BinaryOperator>(expr)) {
         BinaryOperator* binaryOperator = dyn_cast<BinaryOperator>(expr);
-        _os << "binary class name: " << binaryOperator->getStmtClassName() << "\n";
-        _os << "binary opcode: " << binaryOperator->getOpcode() << "\n";
         bool isSubOperation = false;
 
         switch (binaryOperator->getOpcode()) {
             case BO_SubAssign:
-
                 isSubOperation = true;
                 break;
             case BO_AddAssign:
@@ -203,17 +198,7 @@ int FindGPUMacro::fetchExprInc(Expr* expr) {
         }
         int incrValue = 0;
         if (Expr* rhs = binaryOperator->getRHS()) {
-            if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(rhs)) {
-                incrValue = literalVal->getValue().getSExtValue();
-            } else if (UnaryOperator* uo = dyn_cast<UnaryOperator>(rhs)) {
-                // toggle increment direction if it's a negative number
-                isSubOperation = !isSubOperation;
-
-                if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(uo->getSubExpr())) {
-                    incrValue = literalVal->getValue().getSExtValue();
-                }
-
-            }
+            incrValue = extractValueFromIntegerLiteral(rhs);
         }
         if (isSubOperation) incrValue *= -1;
 
@@ -223,10 +208,10 @@ int FindGPUMacro::fetchExprInc(Expr* expr) {
         UnaryOperator* unaryOperator = dyn_cast<UnaryOperator>(expr);
         if (unaryOperator->getOpcode() == UO_PostInc || 
                 unaryOperator->getOpcode() == UO_PreInc) {
-            retVal = 1;
+            return 1;
         } else if (unaryOperator->getOpcode() == UO_PostDec || 
                 unaryOperator->getOpcode() == UO_PreDec) {
-            retVal = -1;
+            return -1;
         }
     } 
 
@@ -310,15 +295,7 @@ void FindGPUMacro::printLoopBounds(ForStmt* forStmt) {
         }
 
         if (Expr* rhs = bo->getRHS()) {
-            if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(rhs)) {
-                condBound = literalVal->getValue().getSExtValue();
-                _os << "condition bound: " << condBound << "\n";
-            } else if (UnaryOperator* uo = dyn_cast<UnaryOperator>(rhs)) {
-                if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(uo->getSubExpr())) {
-                    condBound = -1 * literalVal->getValue().getSExtValue();
-                }
-
-            }
+            condBound = extractValueFromIntegerLiteral(rhs);
         }
 
         opCode = bo->getOpcode();
@@ -333,6 +310,17 @@ void FindGPUMacro::printLoopBounds(ForStmt* forStmt) {
         _os <<  "\n";
     }
 
+}
+
+int FindGPUMacro::extractValueFromIntegerLiteral(Expr* expr) {
+    if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(expr)) {
+        return literalVal->getValue().getSExtValue();
+
+    } else if (UnaryOperator* uo = dyn_cast<UnaryOperator>(expr)) {
+        if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(uo->getSubExpr())) {
+            return -1 * literalVal->getValue().getSExtValue();
+        }
+    }
 }
 
 FindGPUMacro::forStmtGPUMacroMapType FindGPUMacro::getForStmtGPUMacroMap() {
