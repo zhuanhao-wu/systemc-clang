@@ -65,6 +65,11 @@ namespace scpar {
 
 
     private:
+     map<string, int> fetchStmtInitDecl(Stmt* stmt);
+     int fetchExprInc(Expr* expr);
+     int processCondExpr(Expr* expr);
+     void printLoopBounds(ForStmt* forStmt);
+
      forStmtGPUMacroMapType _forStmtGPUMacroMap; 
      CXXMethodDecl* _entryFunction;		 
 		 int _instanceNum;
