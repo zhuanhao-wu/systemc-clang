@@ -23,8 +23,9 @@ namespace scpar {
     void printSystemCModulesMap();
   
   private:
-    int fetchStmtRHS(Stmt* stmt);
+    map<string, int> fetchStmtInitDecl(Stmt* stmt);
     int fetchExprInc(Expr* expr);
+    int processCondExpr(Expr* expr);
     void printBodyDataStructs(ForStmt* forStmt);
     void printLoopBounds(ForStmt* forStmt);
     llvm::raw_ostream & _os;
