@@ -312,6 +312,25 @@ void FindGPUMacro::printLoopBounds(ForStmt* forStmt) {
 
 }
 
+map<string, int> FindGPUMacro::fetchStmtInitDecl(Stmt* stmt) {
+    map<string, int> returnMap;
+    if (DeclStmt* declStmt = dyn_cast<DeclStmt>(stmt)) {
+        if (declStmt->isSingleDecl()) {
+            Decl* singleDecl = declStmt->getSingleDecl();
+
+            if (VarDecl* vDecl = dyn_cast<VarDecl>(singleDecl)){
+                Expr* val = vDecl->getInit();
+
+                int intVal = extractValueFromIntegerLiteral(val);
+                returnMap.insert(make_pair(
+                            vDecl->getNameAsString(),
+                            intVal));
+            }
+        }
+    }
+    return returnMap;
+}
+
 int FindGPUMacro::extractValueFromIntegerLiteral(Expr* expr) {
     if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(expr)) {
         return literalVal->getValue().getSExtValue();

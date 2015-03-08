@@ -26,8 +26,8 @@ namespace scpar {
     map<string, int> fetchStmtInitDecl(Stmt* stmt);
     int fetchExprInc(Expr* expr);
     int processCondExpr(Expr* expr);
-    void printBodyDataStructs(ForStmt* forStmt);
     void printLoopBounds(ForStmt* forStmt);
+    int extractValueFromIntegerLiteral(Expr* expr);
     llvm::raw_ostream & _os;
     moduleMapType _moduleMap;
 

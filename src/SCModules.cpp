@@ -9,103 +9,48 @@ _os(os)
   TraverseDecl(tuDecl);
 }
 
-void SCModules::printLoopBounds(ForStmt* forStmt)
-{
-    map<string, int> initDecl = fetchStmtInitDecl(forStmt->getInit());
-    string initVal;
-    if (initDecl.size() == 1) {
-        for (map<string, int>::iterator i = initDecl.begin();
-                i != initDecl.end(); i++) {
-            _os << "init decl: \n" << i->first << " = " << i->second << "\n";
-            initVal = i->first;
+int SCModules::fetchExprInc(Expr* expr) {
+    int retVal = 0;
+    bool negative = false;
+    if (dyn_cast<BinaryOperator>(expr)) {
+        BinaryOperator* binaryOperator = dyn_cast<BinaryOperator>(expr);
+        bool isSubOperation = false;
+
+        switch (binaryOperator->getOpcode()) {
+            case BO_SubAssign:
+                isSubOperation = true;
+                break;
+            case BO_AddAssign:
+                _os << "It's binary AddAssign operation!!\n"; 
+                break; 
+
+            default:
+                break;
         }
-    }
-
-    int increment = fetchExprInc(forStmt->getInc());
-    _os << "increment is: " << increment << "\n";
-
-    Expr* cond = forStmt->getCond();
-    string varName;
-    int condBound;
-    int opCode;
-    if (BinaryOperator* bo = dyn_cast<BinaryOperator>(cond)) {
-        if (Expr* lhs = bo->getLHS()) {
-            if (ImplicitCastExpr* impCast = dyn_cast<ImplicitCastExpr>(lhs)) {
-                for (Stmt::child_iterator it = impCast->child_begin(); 
-                        it != impCast->child_end(); it++) {
-                    if (DeclRefExpr* decl = dyn_cast<DeclRefExpr>(*it)) {
-                        ValueDecl* vd = decl->getDecl();
-                        if (vd) {
-                            varName = vd->getNameAsString();
-                        }
-                    }
-                }
-            }
+        int incrValue = 0;
+        if (Expr* rhs = binaryOperator->getRHS()) {
+            incrValue = extractValueFromIntegerLiteral(rhs);
         }
+        if (isSubOperation) incrValue *= -1;
 
-        if (Expr* rhs = bo->getRHS()) {
-            if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(rhs)) {
-                condBound = literalVal->getValue().getSExtValue();
-                _os << "condition bound: " << condBound << "\n";
-            } else if (UnaryOperator* uo = dyn_cast<UnaryOperator>(rhs)) {
-                if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(uo->getSubExpr())) {
-                    condBound = -1 * literalVal->getValue().getSExtValue();
-                }
+        return incrValue;
 
-            }
+    } else if (dyn_cast<UnaryOperator>(expr)) {
+        UnaryOperator* unaryOperator = dyn_cast<UnaryOperator>(expr);
+        if (unaryOperator->getOpcode() == UO_PostInc || 
+                unaryOperator->getOpcode() == UO_PreInc) {
+            return 1;
+        } else if (unaryOperator->getOpcode() == UO_PostDec || 
+                unaryOperator->getOpcode() == UO_PreDec) {
+            return -1;
         }
+    } 
 
-        opCode = bo->getOpcode();
-    }
-
-    if (varName == initVal) {
-        _os << "===\nForLoop Analysis:\n===\n";
-        _os << "init var: " << initVal << "\n";
-        _os << "init val: " << initDecl[initVal] << "\n";
-        _os << "value bound: " << condBound << "\n";
-        _os << "increment: " << increment << "\n";
-        _os <<  "\n";
-    }
+    return retVal;
 
 }
 
-void SCModules::printBodyDataStructs(ForStmt* forStmt)
-{
-    Stmt* loopBody = forStmt->getBody();
-}
-
-map<string, int> SCModules::fetchStmtInitDecl(Stmt* stmt)
-{
-    map<string, int> returnMap;
-    if (DeclStmt* declStmt = dyn_cast<DeclStmt>(stmt)) {
-        if (declStmt->isSingleDecl()) {
-            Decl* singleDecl = declStmt->getSingleDecl();
-
-            if (VarDecl* vDecl = dyn_cast<VarDecl>(singleDecl)){
-                Expr* val = vDecl->getInit();
-
-                if (IntegerLiteral* literal = dyn_cast<IntegerLiteral>(val)) {
-                    returnMap.insert(make_pair(
-                                vDecl->getNameAsString(), 
-                                literal->getValue().getSExtValue()));
-                } else if (UnaryOperator* uo = dyn_cast<UnaryOperator>(val)) {
-                    if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(uo->getSubExpr())) {
-                        int intVal = -1 * literalVal->getValue().getSExtValue();
-                        returnMap.insert(make_pair(
-                                vDecl->getNameAsString(), 
-                                intVal));
-                    }
-                }
-            }
-        }
-    }
-
-    return returnMap;
-}
-
-int SCModules::processCondExpr(Expr* expr)
-{
-
+int SCModules::processCondExpr(Expr* expr) {
     int opCodeNOTEQ  = 31;
     int opCodeLEQ = 32;
 
@@ -145,63 +90,87 @@ int SCModules::processCondExpr(Expr* expr)
             _os << "BinaryOperator RHS of condition: " << i->getValue() << "\n";
         }
     }
+}
+map<string, int> SCModules::fetchStmtInitDecl(Stmt* stmt) {
+    map<string, int> returnMap;
+    if (DeclStmt* declStmt = dyn_cast<DeclStmt>(stmt)) {
+        if (declStmt->isSingleDecl()) {
+            Decl* singleDecl = declStmt->getSingleDecl();
+
+            if (VarDecl* vDecl = dyn_cast<VarDecl>(singleDecl)){
+                Expr* val = vDecl->getInit();
+
+                int intVal = extractValueFromIntegerLiteral(val);
+                returnMap.insert(make_pair(
+                            vDecl->getNameAsString(),
+                            intVal));
+            }
+        }
+    }
+    return returnMap;
+}
+
+
+void SCModules::printLoopBounds(ForStmt* forStmt) {
+    map<string, int> initDecl = fetchStmtInitDecl(forStmt->getInit());
+    string initVal;
+    if (initDecl.size() == 1) {
+        for (map<string, int>::iterator i = initDecl.begin();
+                i != initDecl.end(); i++) {
+            _os << "init decl: \n" << i->first << " = " << i->second << "\n";
+            initVal = i->first;
+        }
+    }
+
+    int increment = fetchExprInc(forStmt->getInc());
+    _os << "increment is: " << increment << "\n";
+
+    Expr* cond = forStmt->getCond();
+    string varName;
+    int condBound;
+    int opCode;
+    if (BinaryOperator* bo = dyn_cast<BinaryOperator>(cond)) {
+        if (Expr* lhs = bo->getLHS()) {
+            if (ImplicitCastExpr* impCast = dyn_cast<ImplicitCastExpr>(lhs)) {
+                for (Stmt::child_iterator it = impCast->child_begin(); 
+                        it != impCast->child_end(); it++) {
+                    if (DeclRefExpr* decl = dyn_cast<DeclRefExpr>(*it)) {
+                        ValueDecl* vd = decl->getDecl();
+                        if (vd) {
+                            varName = vd->getNameAsString();
+                        }
+                    }
+                }
+            }
+        }
+
+        if (Expr* rhs = bo->getRHS()) {
+            condBound = extractValueFromIntegerLiteral(rhs);
+        }
+
+        opCode = bo->getOpcode();
+    }
+
+    if (varName == initVal) {
+        _os << "===\nForLoop Analysis:\n===\n";
+        _os << "init var: " << initVal << "\n";
+        _os << "init val: " << initDecl[initVal] << "\n";
+        _os << "value bound: " << condBound << "\n";
+        _os << "increment: " << increment << "\n";
+        _os <<  "\n";
+    }
 
 }
 
-int SCModules::fetchExprInc(Expr* expr)
-{
-    int retVal = 0;
-    bool negative = false;
-    expr->dump();
-    _os << "Expr class name: " << expr->getStmtClassName() << "\n";
-    if (dyn_cast<BinaryOperator>(expr)) {
-        BinaryOperator* binaryOperator = dyn_cast<BinaryOperator>(expr);
-        _os << "binary class name: " << binaryOperator->getStmtClassName() << "\n";
-        _os << "binary opcode: " << binaryOperator->getOpcode() << "\n";
-        bool isSubOperation = false;
+int SCModules::extractValueFromIntegerLiteral(Expr* expr) {
+    if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(expr)) {
+        return literalVal->getValue().getSExtValue();
 
-        switch (binaryOperator->getOpcode()) {
-            case BO_SubAssign:
-
-                isSubOperation = true;
-                break;
-            case BO_AddAssign:
-                _os << "It's binary AddAssign operation!!\n"; 
-                break; 
-
-            default:
-                break;
+    } else if (UnaryOperator* uo = dyn_cast<UnaryOperator>(expr)) {
+        if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(uo->getSubExpr())) {
+            return -1 * literalVal->getValue().getSExtValue();
         }
-        int incrValue = 0;
-        if (Expr* rhs = binaryOperator->getRHS()) {
-            if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(rhs)) {
-                incrValue = literalVal->getValue().getSExtValue();
-            } else if (UnaryOperator* uo = dyn_cast<UnaryOperator>(rhs)) {
-                // toggle increment direction if it's a negative number
-                isSubOperation = !isSubOperation;
-
-                if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(uo->getSubExpr())) {
-                    incrValue = literalVal->getValue().getSExtValue();
-                }
-
-            }
-        }
-        if (isSubOperation) incrValue *= -1;
-
-        return incrValue;
-
-    } else if (dyn_cast<UnaryOperator>(expr)) {
-        UnaryOperator* unaryOperator = dyn_cast<UnaryOperator>(expr);
-       if (unaryOperator->getOpcode() == UO_PostInc || 
-               unaryOperator->getOpcode() == UO_PreInc) {
-           retVal = 1;
-       } else if (unaryOperator->getOpcode() == UO_PostDec || 
-               unaryOperator->getOpcode() == UO_PreDec) {
-           retVal = -1;
-       }
-    } 
-
-    return retVal;
+    }
 }
 
 bool SCModules::VisitStmt(Stmt * stmt)
@@ -211,8 +180,6 @@ bool SCModules::VisitStmt(Stmt * stmt)
         _os << "VisitStmt class name: " << stmt->getStmtClassName() << "\n";
 
         printLoopBounds(forStmt);
-
-        printBodyDataStructs(forStmt);
     }
 
     return true;
