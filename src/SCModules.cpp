@@ -47,6 +47,11 @@ void SCModules::printLoopBounds(ForStmt* forStmt)
             if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(rhs)) {
                 condBound = literalVal->getValue().getSExtValue();
                 _os << "condition bound: " << condBound << "\n";
+            } else if (UnaryOperator* uo = dyn_cast<UnaryOperator>(rhs)) {
+                if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(uo->getSubExpr())) {
+                    condBound = -1 * literalVal->getValue().getSExtValue();
+                }
+
             }
         }
 
@@ -83,6 +88,13 @@ map<string, int> SCModules::fetchStmtInitDecl(Stmt* stmt)
                     returnMap.insert(make_pair(
                                 vDecl->getNameAsString(), 
                                 literal->getValue().getSExtValue()));
+                } else if (UnaryOperator* uo = dyn_cast<UnaryOperator>(val)) {
+                    if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(uo->getSubExpr())) {
+                        int intVal = -1 * literalVal->getValue().getSExtValue();
+                        returnMap.insert(make_pair(
+                                vDecl->getNameAsString(), 
+                                intVal));
+                    }
                 }
             }
         }
@@ -139,28 +151,44 @@ int SCModules::processCondExpr(Expr* expr)
 int SCModules::fetchExprInc(Expr* expr)
 {
     int retVal = 0;
+    bool negative = false;
+    expr->dump();
     _os << "Expr class name: " << expr->getStmtClassName() << "\n";
     if (dyn_cast<BinaryOperator>(expr)) {
-       BinaryOperator* binaryOperator = dyn_cast<BinaryOperator>(expr);
-       _os << "binary class name: " << binaryOperator->getStmtClassName() << "\n";
-       _os << "binary opcode: " << binaryOperator->getOpcode() << "\n";
-       if (binaryOperator->getOpcode() == BO_AddAssign) {
-           _os << "It's binary add operation!!\n"; 
+        BinaryOperator* binaryOperator = dyn_cast<BinaryOperator>(expr);
+        _os << "binary class name: " << binaryOperator->getStmtClassName() << "\n";
+        _os << "binary opcode: " << binaryOperator->getOpcode() << "\n";
+        bool isSubOperation = false;
 
-       } else if (binaryOperator->getOpcode() == BO_SubAssign) {
-           _os << "It's binary sub operation!!\n"; 
-       } else if (binaryOperator->getOpcode() == BO_MulAssign) {
-           _os << "It's binary mul operation!!\n"; 
-       } else if (binaryOperator->getOpcode() == BO_DivAssign) {
-           _os << "It's binary div operation!!\n"; 
-       } else if (binaryOperator->getOpcode() == BO_XorAssign) {
-           _os << "It's binary xor operation!!\n"; 
-       } else if (binaryOperator->getOpcode() == BO_OrAssign) {
-           _os << "It's binary or operation!!\n"; 
-       } else if (binaryOperator->getOpcode() == BO_Comma) {
-           _os << "It's binary comma operation!!\n"; 
-           Expr* rhs = binaryOperator->getRHS();
-       }
+        switch (binaryOperator->getOpcode()) {
+            case BO_SubAssign:
+
+                isSubOperation = true;
+                break;
+            case BO_AddAssign:
+                _os << "It's binary AddAssign operation!!\n"; 
+                break; 
+
+            default:
+                break;
+        }
+        int incrValue = 0;
+        if (Expr* rhs = binaryOperator->getRHS()) {
+            if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(rhs)) {
+                incrValue = literalVal->getValue().getSExtValue();
+            } else if (UnaryOperator* uo = dyn_cast<UnaryOperator>(rhs)) {
+                // toggle increment direction if it's a negative number
+                isSubOperation = !isSubOperation;
+
+                if (IntegerLiteral* literalVal = dyn_cast<IntegerLiteral>(uo->getSubExpr())) {
+                    incrValue = literalVal->getValue().getSExtValue();
+                }
+
+            }
+        }
+        if (isSubOperation) incrValue *= -1;
+
+        return incrValue;
 
     } else if (dyn_cast<UnaryOperator>(expr)) {
         UnaryOperator* unaryOperator = dyn_cast<UnaryOperator>(expr);
@@ -171,7 +199,7 @@ int SCModules::fetchExprInc(Expr* expr)
                unaryOperator->getOpcode() == UO_PreDec) {
            retVal = -1;
        }
-    }
+    } 
 
     return retVal;
 }
