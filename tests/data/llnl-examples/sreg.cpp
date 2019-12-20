@@ -28,7 +28,7 @@ int sc_main(int argc, char *argv[]) {
 
   sreg<int, BYPASS> sreg_bypass("sreg_bypass");
   sreg<int, FWD>    sreg_fwd("sreg_fwd");
-  sreg<int, FWD_REV> sreg_fwd_rev("sreg_fwd_rev");
+  sreg<double, FWD_REV> sreg_fwd_rev("sreg_fwd_rev");
 
   sreg_bypass.clk(clk);
   sreg_bypass.reset(reset);
