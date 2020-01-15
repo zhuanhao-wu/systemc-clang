@@ -143,17 +143,17 @@ class CType2VerilogType(object):
             elif arg == 'sc_out':
                 out_port = True
             else: 
-                if bw is None:
-                    if arg in ['sc_bv', 'sc_int']:
+                if arg in ['sc_bv', 'sc_int']:
+                    if bw is None:
                         bw = int(next(l_iter))
-                    elif arg in ['double', 'int']:
-                        # bw = CType2VerilogType.get_width(arg)
-                        if arg == 'double':
-                            vtype = 'real'
-                        elif arg == 'int':
-                            vtype = 'integer'
-                else:
-                    assert False, 'incorrect htype specification'
+                    else:
+                        assert False, 'incorrect htype specification'
+                elif arg in ['double', 'int']:
+                    # bw = CType2VerilogType.get_width(arg)
+                    if arg == 'double':
+                        vtype = 'real'
+                    elif arg == 'int':
+                        vtype = 'integer'
         inout = ''
         if in_port:
             inout = 'input'
@@ -163,7 +163,7 @@ class CType2VerilogType(object):
             width_or_type_str = ''
             if vtype == 'real':
                 width_or_type_str = ' real'
-            elif vtype == 'int':
+            elif vtype == 'integer':
                 width_or_type_str = ' integer'
         else:
             width_or_type_str = f' [{bw-1}:0]'

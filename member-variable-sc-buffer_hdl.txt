@@ -1,0 +1,143 @@
+  hModule FIR_0 [
+    hPortsigvarlist  NONAME [
+      hPortin clk NOLIST
+      hTypeinfo  NONAME [
+        hType sc_in NOLIST
+      ]
+      hPortin sample NOLIST
+      hTypeinfo  NONAME [
+        hType sc_in NOLIST
+        hType double NOLIST
+      ]
+      hPortout result NOLIST
+      hTypeinfo  NONAME [
+        hType sc_out NOLIST
+        hType double NOLIST
+      ]
+      hVardecl i NOLIST
+      hTypeinfo  NONAME [
+        hType sc_buffer NOLIST
+        hType double NOLIST
+      ]
+      hVardecl myint NOLIST
+      hTypeinfo  NONAME [
+        hType sc_int NOLIST
+        hType 32 NOLIST
+      ]
+      hSigdecl mysignal NOLIST
+      hTypeinfo  NONAME [
+        hType sc_signal NOLIST
+        hType int NOLIST
+      ]
+    ]
+    hProcesses  NONAME [
+      hProcess behavior [
+        hSenslist  NONAME [
+          hSensvar clk [
+            hSensedge neg NOLIST
+          ]
+        ]
+        hCStmt  NONAME [
+          hPortsigvarlist  NONAME [
+            hVardecl sum [
+              hTypeinfo  NONAME [
+                hType double NOLIST
+              ]
+              hBinop * [
+                hBinop ARRAYSUBSCRIPT [
+                  hVarref c NOLIST
+                  hLiteral 0 NOLIST
+                ]
+                hSigAssignR read [
+                  hLiteral sample NOLIST
+                ]
+              ]
+            ]
+          ]
+          hForStmt  NONAME [
+            hPortsigvarlist  NONAME [
+              hVardecl j [
+                hTypeinfo  NONAME [
+                  hType int NOLIST
+                ]
+                hLiteral 1 NOLIST
+              ]
+            ]
+            hBinop <= [
+              hVarref j NOLIST
+              hVarref ORDER NOLIST
+            ]
+            hUnop ++ [
+              hVarref j NOLIST
+            ]
+            hBinop = [
+              hVarref sum NOLIST
+              hBinop + [
+                hVarref sum NOLIST
+                hBinop * [
+                  hBinop ARRAYSUBSCRIPT [
+                    hVarref c NOLIST
+                    hVarref j NOLIST
+                  ]
+                  hSigAssignR read [
+                    hBinop ARRAYSUBSCRIPT [
+                      hLiteral i NOLIST
+                      hBinop - [
+                        hVarref j NOLIST
+                        hLiteral 1 NOLIST
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+          hSigAssignL write [
+            hLiteral result NOLIST
+            hVarref sum NOLIST
+          ]
+          hSigAssignL write [
+            hBinop ARRAYSUBSCRIPT [
+              hLiteral i NOLIST
+              hLiteral 0 NOLIST
+            ]
+            hSigAssignR read [
+              hLiteral sample NOLIST
+            ]
+          ]
+          hForStmt  NONAME [
+            hPortsigvarlist  NONAME [
+              hVardecl j [
+                hTypeinfo  NONAME [
+                  hType int NOLIST
+                ]
+                hLiteral 1 NOLIST
+              ]
+            ]
+            hBinop < [
+              hVarref j NOLIST
+              hVarref ORDER NOLIST
+            ]
+            hUnop ++ [
+              hVarref j NOLIST
+            ]
+            hSigAssignL write [
+              hBinop ARRAYSUBSCRIPT [
+                hLiteral i NOLIST
+                hVarref j NOLIST
+              ]
+              hSigAssignR read [
+                hBinop ARRAYSUBSCRIPT [
+                  hLiteral i NOLIST
+                  hBinop - [
+                    hVarref j NOLIST
+                    hLiteral 1 NOLIST
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
