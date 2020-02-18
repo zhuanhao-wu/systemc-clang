@@ -61,8 +61,8 @@ l = Lark('''
         !npa : "neg" | "pos" | "always"
 
         // if and if-else, not handling if-elseif case
-        ifstmt: "hIfStmt" "[" expression  (hcstmt|exprinif|ifstmt) "]"
-              | "hIfStmt" "[" (hcstmt|exprinif|ifstmt) "]" "[" (hcstmt|exprinif|ifstmt) "]"
+        ifstmt: "hIfStmt" "NONAME" "[" expression  (hcstmt|exprinif|ifstmt) [(hcstmt|exprinif|ifstmt)] "]"
+              | "hIfStmt" "NONAME" "[" (hcstmt|exprinif|ifstmt) "]" "[" (hcstmt|exprinif|ifstmt) "]"
         exprinif: expression
          
         ?expression: hbinop
@@ -87,23 +87,31 @@ l = Lark('''
              | htempandunop 
         // just a temporary workaround
         htempandunop: "(hLiteral operator const bool &)" expression
+                    | "(hLiteral operator const int &)" expression
         htemptrigger:  hliteral hliteral hvardecl 
         hliteral:  "hLiteral" ID "NOLIST"
         hlitdecl: hliteral*
         ?hvardecl:  "hVardecl" ID "NOLIST"
         hvardef: "hVardecl" ID "[" "]" hvardefsuf // ok to shift instead of reduce
                | "hVardecl" ID "[" htypeinfo  hvardefsuf "]"
+               | "hVardecl" ID "[" htypeinfo  "]"
         ?hvardefsuf: hunimp | hliteral |  syscread  |  syscwrite  |  hbinop 
         htypeinfo: "hTypeinfo" "NONAME" "[" htype+ "]"
-        htype:  "hType" ID "NOLIST"
+        htype:  "hType" typeparts "NOLIST"
+        typeparts: STR+
 
         // This is like a function call
         hnoop: "hNoop" ID "[" hvarref "]"
+             | "hNoop" ID "[" hliteral "]"
              | "hNoop" ID "[" hliteral hvarref "]"
+             | "hNoop" ID "[" hliteral expression "]"
              | "hNoop" "operator" "const" "bool" "&" "[" hliteral "]"
+             | "hNoop" "operator" "const" "int"  "&" "[" expression "]"
+             | "hNoop" "operator" "const" "sc_dt::sc_uint<1>"  "&" "[" hliteral "]"
 
         ID: /[a-zA-Z_0-9]+/
-        BINOP: "==" | "&&" | "=" | "||" | "-" | ">" | "+" | "*" | "^" | "ARRAYSUBSCRIPT" | "<=" | "<"
+        STR: /[a-zA-Z_0-9:<>,\[\]]+/
+        BINOP: "==" | "&&" | "=" | "||" | "-" | ">" | "+" | "*" | "^" | "ARRAYSUBSCRIPT" | "<=" | "<" | "%"
         UNOP: "!" | "++"
         %import common.WS
         %ignore WS
@@ -296,6 +304,10 @@ class VerilogTransformer(Transformer):
             # by default, use reg
             self.vardecl_map[str(args[0])] = args[1]
             return f'{args[0]} = {args[2]}'
+        elif len(args) == 1:
+            return f'/* Unimplemented: {args[0]} */'
+        elif len(args) == 2:
+            return f'/* Unimplemented: {args[0]}, {args[1]} */'
         assert False
 
     @p
@@ -467,11 +479,12 @@ class VerilogTransformer(Transformer):
 
     @p
     def hnoop(self, args):
+        print(args)
         if len(args) == 2:
             return str(args[1])
         elif len(args) == 1:
             return str(args[0])
-        elif len(args) == 3 and args[0] == 'next_trigger':
+        elif len(args) == 3:
             return '#' + str(args[1])
         else:
             assert False

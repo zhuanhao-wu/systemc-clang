@@ -51,7 +51,7 @@ class SystemCClangDriver(object):
         v_loc = path + '.v'
         v_loc = os.path.abspath(v_loc)
         if os.path.isfile(v_loc):
-            raise RuntimeError('File to generate: {} exists'.format(v_loc))
+            raise RuntimeError('File to generate: {} exists (a previous failure run might leave intermediate result)'.format(v_loc))
 
         v_filename = os.path.basename(v_loc)
         output_filename = '{}/{}'.format(output_folder, v_filename)
@@ -83,7 +83,11 @@ class SystemCClangDriver(object):
                     subprocess.run(cmdline, 
                             stdout=null,  stderr=null,
                             shell=True)
-            if os.path.isfile(output_filename):
+            move_required = os.path.normpath(v_loc) != os.path.normpath(output_filename)
+            if os.path.isfile(v_loc):
+                if move_required:
+                    move(v_loc, output_folder)
+                assert os.path.isfile(output_filename), "move from {} to {} failed".format(v_loc, output_filename)
                 return True, output_filename
             else:
                 return False, None

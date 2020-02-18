@@ -83,6 +83,8 @@ def hdl_to_v(args, hdl=None, output_folder=None, rmdir=True):
             else:
                 print('Diff information of {} and {}:'.format(path, args.verilog))
                 print(str(diff_info))
+    except RuntimeError as e:
+        print(e)
     finally:
         if not res:
             print('Conversion failed, please check program output (with --verbose option)')
