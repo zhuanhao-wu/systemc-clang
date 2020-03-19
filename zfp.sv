@@ -202,25 +202,25 @@ module find_emax #(
 
   // sc_rvd_in
   // sc_stream_in s_fp
-  (* mark_debug = "true" *) input  logic[F-1:0]  s_fp_data_frac,
-  (* mark_debug = "true" *) input  logic[E-1:0]  s_fp_data_expo,
-  (* mark_debug = "true" *) input  logic         s_fp_data_sign,
-  (* mark_debug = "true" *) input  logic         s_fp_valid,
-  (* mark_debug = "true" *) output logic         s_fp_ready,
+  input  logic[F-1:0]  s_fp_data_frac,
+  input  logic[E-1:0]  s_fp_data_expo,
+  input  logic         s_fp_data_sign,
+  input  logic         s_fp_valid,
+  output logic         s_fp_ready,
 
   // sc_rvd_out
   // sc_stream_out m_fp
-  (* mark_debug = "true" *) output  logic[F-1:0] m_fp_data_frac,
-  (* mark_debug = "true" *) output  logic[E-1:0] m_fp_data_expo,
-  (* mark_debug = "true" *) output  logic        m_fp_data_sign,
-  (* mark_debug = "true" *) output  logic        m_fp_valid,
-  (* mark_debug = "true" *) input   logic        m_fp_ready,
+  output  logic[F-1:0] m_fp_data_frac,
+  output  logic[E-1:0] m_fp_data_expo,
+  output  logic        m_fp_data_sign,
+  output  logic        m_fp_valid,
+  input   logic        m_fp_ready,
 
   // sc_rvd_out
   // sc_stream_out m_ex
-  (* mark_debug = "true" *) output  logic[E-1:0] m_ex_data,
-  (* mark_debug = "true" *) output  logic        m_ex_valid,
-  (* mark_debug = "true" *) input   logic        m_ex_ready
+  output  logic[E-1:0] m_ex_data,
+  output  logic        m_ex_valid,
+  input   logic        m_ex_ready
 );
   /* registers */
   // These might not work as expected though...
@@ -456,9 +456,9 @@ module fwd_cast #(
   output logic               s_fp_ready,
 
   // sc_stream_out<si_t> m_int
-  (* mark_debug = "true" *) output  logic[E+F+1-1:0]    m_int_data,
-  (* mark_debug = "true" *) output  logic               m_int_valid,
-  (* mark_debug = "true" *) input   logic               m_int_ready
+  output  logic[E+F+1-1:0]    m_int_data,
+  output  logic               m_int_valid,
+  input   logic               m_int_ready
 );
   logic[2*DIM-1:0] count; // sc_signal<sc_uint<2*DIM>> count;
 
@@ -560,7 +560,7 @@ module zfp_encode#(
   logic             c_int_valid;
   logic             c_int_ready;
 
-  (* dont_touch = "true" *) find_emax #(
+  find_emax #(
       E, F, DIM
   ) u_find_emax(
     .clk(clk),
@@ -583,7 +583,7 @@ module zfp_encode#(
     .m_ex_ready(c_ex_ready)
   );
 
-  (* dont_touch = "true" *) fwd_cast#(E, F, DIM) 
+  fwd_cast#(E, F, DIM) 
   u_fwd_cast (
     .clk(clk),
     .reset(reset),
@@ -643,7 +643,7 @@ endmodule
 module top(
   input logic clk,
   input logic rst,
-  (* mark_debug = "true" *) output logic reset_out
+  output logic reset_out
 );
   localparam E = 11;
   localparam F = 52;
@@ -669,7 +669,7 @@ module top(
     .sig(reset)
   );
 
-  (* dont_touch = "true" *) tb_driver#(E, F, DIM) u_tb_driver(
+  tb_driver#(E, F, DIM) u_tb_driver(
     .clk(clk),
     .reset(reset),
     .m_fp_data_frac (c_driver_fp_data_frac ),
@@ -683,7 +683,7 @@ module top(
     .s_int_ready(c_dut_int_ready)
   );
 
-  (* dont_touch = "true" *) zfp_encode#(E, F, DIM) u_dut(
+  zfp_encode#(E, F, DIM) u_dut(
     .clk(clk),
     .reset(reset),
     .s_fp_data_frac (c_driver_fp_data_frac ),
