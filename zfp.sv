@@ -1,4 +1,3 @@
-/* a working version of the zfp_encode module */
 `timescale 1ns/1ps
 module sreg_fwd # (
   parameter T_WIDTH = 0
@@ -140,47 +139,15 @@ module fifo_cc # (
 
 endmodule
 
-module rvfifo_cc #(
-  parameter depth = 2,
-  parameter E = 0,
-  parameter F = 0
-) (
-  input clk,
-  input reset,
-  // sc_rvd_in
-  // sc_stream_in s_port
-  input  logic[F-1:0] s_port_data_frac,
-  input  logic[E-1:0] s_port_data_expo,
-  input  logic        s_port_data_sign,
-  input  logic        s_port_valid,
-  output logic        s_port_ready,
+`define SUBMODULE
 
-  // sc_rvd_out
-  // sc_stream_out m_port
-  output  logic[F-1:0] m_port_data_frac,
-  output  logic[E-1:0] m_port_data_expo,
-  output  logic        m_port_data_sign,
-  output  logic        m_port_valid,
-  input   logic        m_port_ready
-);
-  fifo_cc#(depth, E, F, 16, 1, 0, 0) u_fifo(
-    .clk(clk),
-    .srst(reset),
-
-    .din_frac  (s_port_data_frac),
-    .din_expo  (s_port_data_expo),
-    .din_sign  (s_port_data_sign),
-    .wr_en(s_port_valid),
-    .full (s_port_ready),
-
-    .dout_frac (m_port_data_frac),
-    .dout_expo (m_port_data_expo),
-    .dout_sign (m_port_data_sign),
-    .rd_en(m_port_ready),
-    .empty(m_port_valid)
-  );
-  
-endmodule
+`ifdef INTERFACE
+  `include "rvfifo_cc_interface.sv"
+`elsif SUBMODULE
+  `include "rvfifo_cc_submodule.sv"
+`else // FLATTEN
+  `include "rvfifo_cc_flatten.sv"
+`endif
 
 /** 
  * this is the top module, 
@@ -202,25 +169,25 @@ module find_emax #(
 
   // sc_rvd_in
   // sc_stream_in s_fp
-  input  logic[F-1:0]  s_fp_data_frac,
-  input  logic[E-1:0]  s_fp_data_expo,
-  input  logic         s_fp_data_sign,
-  input  logic         s_fp_valid,
-  output logic         s_fp_ready,
+  input  logic[F-1:0]        s_fp_data_frac,
+  input  logic[E-1:0]        s_fp_data_expo,
+  input  logic               s_fp_data_sign,
+  input  logic               s_fp_valid,
+  output logic               s_fp_ready,
 
   // sc_rvd_out
   // sc_stream_out m_fp
-  output  logic[F-1:0] m_fp_data_frac,
-  output  logic[E-1:0] m_fp_data_expo,
-  output  logic        m_fp_data_sign,
-  output  logic        m_fp_valid,
-  input   logic        m_fp_ready,
+  output  logic[F-1:0]        m_fp_data_frac,
+  output  logic[E-1:0]        m_fp_data_expo,
+  output  logic               m_fp_data_sign,
+  output  logic               m_fp_valid,
+  input   logic               m_fp_ready,
 
   // sc_rvd_out
   // sc_stream_out m_ex
-  output  logic[E-1:0] m_ex_data,
-  output  logic        m_ex_valid,
-  input   logic        m_ex_ready
+  output  logic[E-1:0]            m_ex_data,
+  output  logic                   m_ex_valid,
+  input   logic                   m_ex_ready
 );
   /* registers */
   // These might not work as expected though...
@@ -246,6 +213,44 @@ module find_emax #(
   logic                                     c_ex_ready;
 
   /* modules */
+  `ifdef INTERFACE
+  rvfifo_cc_if s_port();
+  rvfifo_cc_if m_port();
+  assign s_port.data.frac  = c_fp_data_frac;
+  assign s_port.data.expo  = c_fp_data_expo;
+  assign s_port.data.sign  = c_fp_data_sign;
+  assign s_port.valid      = c_fp_valid;
+  assign c_fp_ready        = s_port.ready;
+
+  assign m_fp_data_frac    = m_port.data.frac;
+  assign m_fp_data_expo    = m_port.data.expo;
+  assign m_fp_data_sign    = m_port.data.sign;
+  assign m_fp_valid        = m_port.valid;
+  assign m_port.ready      = m_fp_ready;
+  rvfifo_cc#(fpblk_sz(DIM), E, F) u_que_fp(
+    .clk(clk),
+    .reset(reset),
+    // s_port
+    .s_port(s_port),
+    
+    // m_port
+    .m_port(m_port)
+  );
+  `elsif SUBMODULE
+  rvfifo_cc#(fpblk_sz(DIM), E, F) u_que_fp(
+    .clk(clk),
+    .reset(reset),
+    // s_port
+    .s_port_data ({c_fp_data_sign, c_fp_data_expo, c_fp_data_frac}),
+    .s_port_valid(c_fp_valid),
+    .s_port_ready(c_fp_ready),
+    
+    // m_port
+    .m_port_data ({m_fp_data_sign, m_fp_data_expo, m_fp_data_frac}),
+    .m_port_valid(m_fp_valid),
+    .m_port_ready(m_fp_ready)
+  );
+  `else
   rvfifo_cc#(fpblk_sz(DIM), E, F) u_que_fp(
     .clk(clk),
     .reset(reset),
@@ -263,6 +268,7 @@ module find_emax #(
     .m_port_valid(m_fp_valid),
     .m_port_ready(m_fp_ready)
   );
+  `endif
   sreg_fwd#(E) u_reg_ex(
     .clk(clk),
     .reset(reset),
@@ -560,7 +566,7 @@ module zfp_encode#(
   logic             c_int_valid;
   logic             c_int_ready;
 
-  find_emax #(
+  (* dont_touch = "true" *) find_emax #(
       E, F, DIM
   ) u_find_emax(
     .clk(clk),
@@ -583,7 +589,7 @@ module zfp_encode#(
     .m_ex_ready(c_ex_ready)
   );
 
-  fwd_cast#(E, F, DIM) 
+  (* dont_touch = "true" *) fwd_cast#(E, F, DIM) 
   u_fwd_cast (
     .clk(clk),
     .reset(reset),
@@ -669,7 +675,7 @@ module top(
     .sig(reset)
   );
 
-  tb_driver#(E, F, DIM) u_tb_driver(
+  (* dont_touch = "true" *) tb_driver#(E, F, DIM) u_tb_driver(
     .clk(clk),
     .reset(reset),
     .m_fp_data_frac (c_driver_fp_data_frac ),
@@ -683,7 +689,7 @@ module top(
     .s_int_ready(c_dut_int_ready)
   );
 
-  zfp_encode#(E, F, DIM) u_dut(
+  (* dont_touch = "true" *) zfp_encode#(E, F, DIM) u_dut(
     .clk(clk),
     .reset(reset),
     .s_fp_data_frac (c_driver_fp_data_frac ),
@@ -699,22 +705,22 @@ module top(
 
 endmodule
 
-/* top design for Vivado */
 module top_wrapper(
     input logic clk_p,
     input logic clk_n
 );
-  logic clk50, ce;
-  clk_wiz_0 clkgen(
+logic clk50, ce;
+clk_wiz_0 clkgen(
     .clk_in1_p(clk_p),
     .clk_in1_n(clk_n),
     .clk_out50(clk50)
-  );
-  vio_0 vio(.clk(clk50), .probe_out0(ce));
-  top tp(
-    .clk(clk50),
-    .rst(ce)
-  );
+);
+vio_0 vio(.clk(clk50), .probe_out0(ce));
+top tp(
+  .clk(clk50),
+  .rst(ce)
+);
+
 endmodule
 
 module tb;
