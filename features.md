@@ -9,23 +9,7 @@ hPortout m_ex [
 ┊ ]
 ]
 ```
-
-
-### Differentiating module initialization
-L. 172
-```
-hVardecl u_que_fp [
-┊ hTypeinfo  NONAME [
-┊ ┊ hType sfifo_cc NOLIST
-┊ ┊ hType fp_t NOLIST
-┊ ┊ hType 52 NOLIST
-┊ ┊ hType 11 NOLIST
-┊ ]
-]
-```
-
-Maybe aggregate `sfifo_cc` with extra information, or also record the base class here
-so that we know it's a module.
+Can be resolved with RVD
 
 ### For fp\_t
 L. 318
@@ -87,6 +71,27 @@ We need some way of representing the nested structure.
 ```
 
 We might need to have information in the constructor as well for module wire connection.
+
+### Differentiating module initialization/module declaration
+L. 172
+```
+hVardecl u_que_fp [
+┊ hTypeinfo  NONAME [
+┊ ┊ hType sfifo_cc NOLIST
+┊ ┊ hType fp_t NOLIST
+┊ ┊ hType 52 NOLIST
+┊ ┊ hType 11 NOLIST
+┊ ]
+]
+```
+
+Maybe aggregate `sfifo_cc` with extra information, or also record the base class here
+so that we know it's a module.
+
+Another question is, should we make the module parameterizable to some extent?
+
+If not, we might need `sfifo_cc_fp_t_52_11`, and `sfifo_cc_fp_t_23_8`, for example.
+
 
 # Some other concerns
 
