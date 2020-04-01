@@ -11,7 +11,7 @@ hPortout m_ex [
 ```
 Can be resolved with RVD
 
-### For fp\_t
+### For `fp_t`
 L. 318
 ```
 hVardecl _XLAT_1 [
@@ -95,7 +95,7 @@ If not, we might need `sfifo_cc_fp_t_52_11`, and `sfifo_cc_fp_t_23_8`, for examp
 
 # Some other concerns
 
-### hMethodCall
+### `hMethodCall`
 L. 226
 
 ```
@@ -111,7 +111,7 @@ Maybe `_` between `sc_core` and `sc_stream` as well.
 And we need the function body as well (maybe I'm not looking at the correct location
 
 
-### expo/emax in `find_emax`
+### `expo/emax` in `find_emax`
 L.384
 
 We might need a reference/definition for `expo/emax`?
