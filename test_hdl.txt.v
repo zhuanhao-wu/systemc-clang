@@ -43,11 +43,11 @@ endmodule // pulse_0
 module tb_driver_0(
   input logic [0:0] clk,
   input logic [0:0] reset,
-  input  logic [255:0] s_port,
+  input  logic [255:0] s_port_data,
   input  logic s_port_valid,
   output logic s_port_ready,
   output logic [0:0] error,
-  output logic [63:0] m_port,
+  output logic [63:0] m_port_data,
   output logic m_port_valid,
   input  logic m_port_ready 
 );
@@ -109,10 +109,10 @@ endmodule // tb_driver_0
 module zfp_encode_0(
   input logic [0:0] clk,
   input logic [0:0] reset,
-  input  logic [63:0] s_fp,
+  input  logic [63:0] s_fp_data,
   input  logic s_fp_valid,
   output logic s_fp_ready,
-  output logic [255:0] m_enc,
+  output logic [255:0] m_enc_data,
   output logic m_enc_valid,
   input  logic m_enc_ready 
 );
@@ -141,13 +141,13 @@ endmodule // zfp_encode_0
 module find_emax_0(
   input logic [0:0] clk,
   input logic [0:0] reset,
-  input  logic [63:0] s_fp,
+  input  logic [63:0] s_fp_data,
   input  logic s_fp_valid,
   output logic s_fp_ready,
-  output logic [63:0] m_fp,
+  output logic [63:0] m_fp_data,
   output logic m_fp_valid,
   input  logic m_fp_ready,
-  output logic [10:0] m_ex,
+  output logic [10:0] m_ex_data,
   output logic m_ex_valid,
   input  logic m_ex_ready 
 );
@@ -220,10 +220,10 @@ endmodule // find_emax_0
 module sreg_0(
   input logic [0:0] clk,
   input logic [0:0] reset,
-  input  logic [10:0] s_port,
+  input  logic [10:0] s_port_data,
   input  logic s_port_valid,
   output logic s_port_ready,
-  output logic [10:0] m_port,
+  output logic [10:0] m_port_data,
   output logic m_port_valid,
   input  logic m_port_ready 
 );
@@ -286,10 +286,10 @@ module fwd_cast_0(
   input logic [0:0] clk,
   input logic [0:0] reset,
   input logic [0:0] m_ready,
-  input  logic [10:0] s_ex,
+  input  logic [10:0] s_ex_data,
   input  logic s_ex_valid,
   output logic s_ex_ready,
-  input  logic [63:0] s_fp,
+  input  logic [63:0] s_fp_data,
   input  logic s_fp_valid,
   output logic s_fp_ready,
   /* m_block not implemented */,
