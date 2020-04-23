@@ -1,4 +1,4 @@
-## Enum Support
+## Enum support
 LOC: `shared/pulse.h` L27
 ```c++
 enum state_e {INIT_S, PRE_S, PULSE_S, POST_S};
