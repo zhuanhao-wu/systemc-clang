@@ -306,7 +306,7 @@ module sreg_0(
     _XLAT_1 = ((rd_idx) + (1)) % (depth);
     if((reset) == (0)) begin
       for(_XLAT_2 = 0;(_XLAT_2) < (depth);_XLAT_2=_XLAT_2+1) begin
-          data [ _XLAT_2 ] = "//# Unimplemented: CXXTemporaryObjectExpr";;
+          data [ _XLAT_2 ] = "//# Unimplemented: CXXTemporaryObjectExpr";
       end
       rd_idx = 0;
       wr_idx = 0;
