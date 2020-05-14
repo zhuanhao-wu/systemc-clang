@@ -9,7 +9,7 @@ l = Lark('''
         start: modulelist
 
         modulelist: ( hmodule)*
-        hmodule:  "hModule" ID "[" modportsiglist? processlist* "]"
+        hmodule:  "hModule" ID "[" modportsiglist? processlist* portbindinglist "]"
 
         modportsiglist: "hPortsigvarlist" "NONAME" "[" modportsigdecl+ "]" 
 
@@ -27,7 +27,10 @@ l = Lark('''
         // can be no process at all in the module
         ?processlist:  "hProcesses" "NONAME" "[" hprocess* "]"
         // could be nothing
-        hprocess:  "hProcess" ID  "[" hsenslist*   stmt "]"
+        // temporarily ignore the hMethod node
+        hprocess:  "hProcess" ID  "[" hsenslist*   "hMethod" "NONAME" "[" prevardecl hcstmt "]" "]"
+        prevardecl: vardecl*
+        vardecl: "hVardecl" ID "NOLIST"
 
         // can be just an empty statement
         hcstmt:  "hCStmt" "NONAME" "[" modportsiglist* stmt+ "]" // useful for raising variable decls
@@ -39,6 +42,11 @@ l = Lark('''
              | forstmt
              | hcstmt
              | switchstmt
+
+        // Port Bindings
+        portbindinglist: "hPortbindings" "NONAME" "[" portbinding* "]"
+        portbinding: "hPortbinding" "NONAME" "[" hvarref hvarref "]"
+
 
         // This is solely for maintaining the semicolon
         expression_in_stmt: expression
@@ -461,7 +469,7 @@ class VerilogTransformer(Transformer):
         senslist = '*' if len(args[1]) == 0 else args[1]
         res = (f"always @({senslist}) begin: {args[0]}\n"
                f"{vardecl_str}\n"
-               f"{args[2]}\n"
+               f"{args[3]}\n"  # TODO: this place needs to be changed
                f"end // {args[0]}")
         self.vardecl_map.clear()
         return res
@@ -707,6 +715,18 @@ class VerilogTransformer(Transformer):
                 body_code = body_code + f'{v} : begin\n' + f'\n' + 'end\n'
         switch_code = f"case({cond})\n" + f"{body_code}\n" + f"endcase"
         return switch_code
+
+    def portbindinglist(self, args):
+        return args
+
+    def portbinding(self, args):
+        assert len(args) == 2
+        warnings.warn('Port binding not implmented: {} - {}'.format(args[0], args[1]))
+        return None
+
+    def prevardecl(self, args):
+        warnings.warn('prevardecl not implemented (currently using varinit)')
+        return ""
 
 
 
