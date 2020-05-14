@@ -10,23 +10,23 @@ module pulse_0(
     case(st)
       0 : begin
         if((0) && (2)) begin
-          st = PRE_S;
+          st = 1;
           count = (0) - (1);
           sig = !(0);
         end else begin
           if(2) begin
-            st = PULSE_S;
+            st = 2;
             count = (2) - (1);
             sig = 0;
           end else begin
-            st = POST_S;
+            st = 3;
             sig = !(0);
           end
         end
       end
       1 : begin
         if((count) == (0)) begin
-          st = PULSE_S;
+          st = 2;
           count = (2) - (1);
           sig = 0;
         end else begin
@@ -35,7 +35,7 @@ module pulse_0(
       end
       2 : begin
         if((count) == (0)) begin
-          st = POST_S;
+          st = 3;
           sig = !(0);
         end else begin
           _XLAT_0 = 1;
@@ -51,7 +51,7 @@ module pulse_0(
     end
   end // ms_pulse
 endmodule // pulse_0
-module tb_driver_0(
+module tb_driver_1(
   input logic [0:0] clk,
   input logic [0:0] reset,
   input logic [255:0] s_port_data,
@@ -116,8 +116,8 @@ module tb_driver_0(
       end
     end
   end // ms_recv
-endmodule // tb_driver_0
-module zfp_encode_0(
+endmodule // tb_driver_1
+module zfp_encode_2(
   input logic [0:0] clk,
   input logic [0:0] reset,
   input logic [63:0] s_fp_data,
@@ -216,8 +216,8 @@ module zfp_encode_0(
     m_enc_valid <= c_fc_valid;
     c_fc_ready <= m_enc_ready;
   end // mc_io
-endmodule // zfp_encode_0
-module find_emax_0(
+endmodule // zfp_encode_2
+module find_emax_3(
   input logic [0:0] clk,
   input logic [0:0] reset,
   input logic [63:0] s_fp_data,
@@ -330,8 +330,8 @@ module find_emax_0(
       end
     end
   end // ms_proc
-endmodule // find_emax_0
-module sreg_0(
+endmodule // find_emax_3
+module sreg_4(
   input logic [0:0] clk,
   input logic [0:0] reset,
   input logic [10:0] s_port_data,
@@ -394,8 +394,8 @@ module sreg_0(
       end
     end
   end // ms_proc
-endmodule // sreg_0
-module fwd_cast_0(
+endmodule // sreg_4
+module fwd_cast_5(
   input logic [0:0] clk,
   input logic [0:0] reset,
   input logic [0:0] m_ready,
@@ -457,5 +457,5 @@ module fwd_cast_0(
       end
     end
   end // ms_proc
-endmodule // fwd_cast_0
+endmodule // fwd_cast_5
 
