@@ -19,7 +19,7 @@ def test_custom_sexp(tmpdir, customdriver, tool_output):
         verbose=tool_output,
         keep_sexp=True
     )
-    assert res, "should convert to sexpression"
+    assert res.xlat_run, "should convert to sexpression"
     diff_res, diff_str = sexpdiff(
         filename,
         conf.get_golden_sexp_name('{}_hdl.txt'.format(test_name))
