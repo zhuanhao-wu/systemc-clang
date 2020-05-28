@@ -38,6 +38,7 @@ def test_ex_sexp(tmpdir, exdriver, tool_output):
     sexp_name = re.sub('.cpp$', '_hdl.txt', sexp_name)
 
     if not os.path.isfile(conf.get_golden_sexp_name(sexp_name)):
+        warnings.warn(conf.get_golden_sexp_name(sexp_name))
         warnings.warn('golden file for ex_{} not found'.format(ex_id))
         pytest.skip('no golden standard to match, skipped (update required)')
 
