@@ -1,15 +1,18 @@
 from lark import Lark, Transformer, Visitor
-import sys
+import sys, traceback
 import logging
 import warnings
 import re
 import argparse
 logging.basicConfig(level=logging.DEBUG)
 
-l = Lark('''
-        start: modulelist
+# TODO: group syntax together to reflect the construct
 
-        modulelist: ( hmodule)*
+l = Lark('''
+        start: modulelist typelist
+
+        modulelist: (hmodule)*
+        typelist: (htypedef)*
         hmodule:  "hModule" ID "[" modportsiglist? processlist* portbindinglist? "]"
 
         modportsiglist: "hPortsigvarlist" "NONAME" "[" modportsigdecl+ "]" 
@@ -106,11 +109,16 @@ l = Lark('''
         hliteral:  "hLiteral" ID "NOLIST"
         htypeinfo: "hTypeinfo" "NONAME" "[" htype+ "]"
                  | "hTypeinfo" "NONAME" "NOLIST" // ?
-        htype:  "hType" TYPESTR "NOLIST" 
-             // | "hType" "unsigned" "int" "NOLIST"
+        htype: "hType" TYPESTR "NOLIST" 
+             | "hType" TYPESTR "[" htype+ "]"     // nested types
+             | "hType" "unsigned" "int" "NOLIST"  // a work around, should be surrounded with quotes
+             | htypeint
+        htypeint: "hType" NUM "NOLIST"  // integer type parameters
+        htypedef: "hTypedef" TYPESTR "[" htype+ "]"
         ID: /[a-zA-Z_0-9]+/
-        TYPESTR: /[a-zA-Z_0-9]+/
-        BINOP: "==" | "&&" | "=" | "||" | "-" | ">" | "+" | "*" | "^" | "ARRAYSUBSCRIPT" | "<=" | "<" | "%" | "!="
+        NUM: /(\+|\-)?[0-9]+/
+        TYPESTR: /[a-zA-Z_][a-zA-Z_0-9]*/
+        BINOP: "==" | "&&" | "=" | "||" | "-" | ">" | "+" | "*" | "^" | "ARRAYSUBSCRIPT" | "<=" | "<" | "%" | "!=" | "&"
         UNOP: "!" | "++" | "-"
         %import common.WS
         %ignore WS
@@ -182,6 +190,7 @@ class CType2VerilogType(object):
             space_inout = ' '
         return [f'{inout}{space_inout}{wire_or_reg}{width_or_type_str}', vtype]
 
+        return ''
     @staticmethod
     def get_width(t):
         if t == 'double':
@@ -192,12 +201,98 @@ class CType2VerilogType(object):
             assert False
 
 
+# TODO: use decorators to embed context
+# TODO: use context object instead of string
+# TODO: not clear when to decide the `logic' part
+class sc_in(object):
+    def __init__(self, T):
+        self.T = T
+
+    def to_str(self, context=None):
+        return 'input {}'.format(self.T.to_str(context='sc_in'))
+
+
+class sc_out(object):
+    def __init__(self, T):
+        self.T = T
+
+    def to_str(self, context=None):
+        return 'output {}'.format(self.T.to_str(context='sc_out'))
+
+
+class sc_uint(object):
+    def __init__(self, width):
+        self.width = width
+
+    def to_str(self, context=None):
+        if context == 'sc_signal':
+            return f'logic [{self.width-1}:0]'
+        else:
+            return f'logic [{self.width-1}:0]'
+
+class sc_int(object):
+    def __init__(self, width):
+        self.width = width
+
+    def to_str(self, context=None):
+        if context == 'sc_signal':
+            return f'logic [{self.width-1}:0]'
+        else:
+            return f'logic [{self.width-1}:0]'
+
+
+class sc_signal(object):
+    def __init__(self, T):
+        self.T = T
+
+    def to_str(self, context=None):
+        return self.T.to_str(context='sc_signal')
+
+
+class cppbool(object):
+    def __new__(cls):
+        return sc_uint(1)
+
+
+class cppint(object):
+    def __new__(cls):
+        return sc_int(32)
+
+
+class cppuint(object):
+    def __new__(cls):
+        return sc_uint(32)
+
+# aggregated type?
+
+
 class CType(object):
     """a helper class for generating signal/ports with correct type"""
     def __init__(self, node_type, var_name, type_info):
         self.node_type = node_type
         self.var_name = var_name
         self.type_info = type_info
+
+    @staticmethod
+    def type_from_str(type_name, *params):
+        if type_name == '_Bool':
+            return cppbool()
+        elif type_name == 'unsigned int':
+            return cppuint()
+        elif type_name == 'int':
+            return cppint()
+        elif type_name == 'sc_in':
+            return sc_in(params[0])
+        elif type_name == 'sc_out':
+            return sc_out(params[0])
+        elif type_name == 'sc_uint':
+            return sc_uint(params[0])
+        elif type_name == 'sc_signal':
+            return sc_signal(params[0])
+        elif type(type_name) == type(0):
+            return type_name
+        else:
+            raise
 
     def generate(self):
         print(self.var_name)
@@ -247,12 +342,17 @@ class CType(object):
 
     def __as_port_in(self):
         print('...', self.type_info)
+        print('...', self.type_info[0].to_str() + ' ' + self.var_name)
+        return self.type_info[0].to_str() + ' ' + self.var_name
         flattened = CType.flatten(self.var_name, self.type_info)
         print('flattend: ', flattened)
         res = ',\n'.join(f'input logic [{p[1] - 1}:0] {p[0]}' for p in flattened)
         return res
 
     def __as_port_out(self):
+        print('...', self.type_info)
+        print('...', self.type_info[0].to_str() + ' ' + self.var_name)
+        return self.type_info[0].to_str() + ' ' + self.var_name
         if self.var_name == 'm_block':
             warnings.warn('Temporarily bypassing array of ports')
             return '/* m_block not implemented */'
@@ -263,6 +363,10 @@ class CType(object):
         return res
 
     def __as_signal(self):
+        print('SIG', self.type_info)
+        print('SIG', self.type_info[0].to_str())
+        assert len(self.type_info) == 1
+        return self.type_info[0].to_str() + ' ' + self.var_name
         if len(self.type_info) == 0:
             if self.var_name == 'c_fc_block':
                 warnings.warn('Temporarily bypassing array declaration for c_fc_block')
@@ -283,7 +387,10 @@ class CType(object):
 
     def __as_var_decl(self):
         """Could also be module declaration as well"""
-        print(self.type_info)
+        # print('>>>', self.type_info)
+        # print('===', self.type_info[0].to_str())
+        assert len(self.type_info) == 1
+        return self.type_info[0].to_str() + ' ' + self.var_name
         if self.type_info[0] in ['sc_uint', 'sc_int', '_Bool', 'fp_t', 'sc_bv', 'int', 'unsigned_int']:
             print('...', self.type_info)
             flattened = CType.flatten(self.var_name, self.type_info)
@@ -323,7 +430,7 @@ def p(decorated):
     """a decorator that helps printing out the transformation results"""
     if debug:
         def wrapper(self, args):
-            print(f'{decorated.__name__}: \n{args} \n\n')
+            print(f'[DBG] {decorated.__name__}: \n{args} \n\n')
             res = decorated(self, args)
             return res
         return wrapper
@@ -444,7 +551,8 @@ class VerilogTransformer(Transformer):
         # NOTE: the name of htype will always be a STRING
         # NOTE: args[0][1:-1] removes the quotes
         # return CType2VerilogType.convert(str(args[0]))
-        return str(args[0])
+        # return str(args[0])
+        return CType.type_from_str(args[0], *args[1:])
 
     def hunimp(self, args):
         return f'\"//# Unimplemented: {args[0]}\"'
@@ -516,7 +624,9 @@ class VerilogTransformer(Transformer):
 
     @p
     def hmodule(self, args):
+        print("Parsing hModule")
         print("args: ", args)
+        print("len(args): ", len(args))
         modname = str(args[0])
         if modname in self.skip:
             return ''
@@ -581,7 +691,9 @@ class VerilogTransformer(Transformer):
         if len(args) == 0:
             return '*'
         else:
-            return args[0]
+            warnings.warn("Temporary hack to bypass the sensitivity list")
+            return "posedge clock"
+            # return args[0]
 
     def hsigassignl(self, args):
         return None
@@ -740,10 +852,12 @@ class VerilogTransformer(Transformer):
         warnings.warn('prevardecl not implemented (currently using varinit)')
         return ""
 
+    def htypeint(self, args):
+        return int(args[0])
 
 
 def tidify(verilog, current_indent = 0, indent_width = 2):
-    """making the generated verilog looks a bit better, may be subject to changes later"""
+    """makes the generated verilog looks a bit better, may be subject to changes later"""
     add_indent_pattern = re.compile(r'(^(module|if|always|for|case)|(\: begin))')
     sub_indent_pattern = re.compile(r'^(endmodule|end)')
     sub_add_indent_pattern = re.compile(r'^(\)\;|end else begin)')
@@ -784,7 +898,10 @@ def main():
     try:
         res = VerilogTransformer(skip=args.skip).transform(t)
     except Exception as e:
-        print(e)
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print("***** print_exception:")
+        # exc_type below is ignored on 3.5 and later
+        traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
         exit(3)
     res = tidify(res)
     with open(outputname, 'w+') as f:

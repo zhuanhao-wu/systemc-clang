@@ -49,7 +49,7 @@ class SystemCClangDriver(object):
     def __init__(self, conf, *args, **kwargs):
         self.conf = conf
 
-    def generate_verilog_from_sexp(self, path, output_folder, keep_v=False, verbose=False, keep_log=True):
+    def generate_verilog_from_sexp(self, path, output_folder, keep_v=False, verbose=False, keep_log=True, force=False):
         """
         Takes _hdl.txt as input, generate .v
         """
@@ -64,7 +64,7 @@ class SystemCClangDriver(object):
         v_filename = os.path.basename(v_loc)
         output_filename = '{}/{}'.format(output_folder, v_filename)
         output_filename = os.path.abspath(output_filename)
-        if os.path.isfile(output_filename):
+        if os.path.isfile(output_filename) and not force:
             raise RuntimeError('File to generate: {} exists'.format(v_loc))
 
         path = os.path.abspath(path)
@@ -119,7 +119,7 @@ class SystemCClangDriver(object):
     """
     Takes .cpp as input, generate _hdl.txt
     """
-    def generate_sexp(self, path, output_folder, keep_sexp=False, verbose=False, keep_log=True):
+    def generate_sexp(self, path, output_folder, keep_sexp=False, verbose=False, keep_log=True, force=False):
         cmdline = self.systemc_clang_commandline(filename=path)
         result = Result()
         if path.endswith('.cpp'):
@@ -129,12 +129,12 @@ class SystemCClangDriver(object):
         else:
             raise RuntimeError('Filename should end with .cpp or .hpp')
 
-        if os.path.isfile(sexp_loc):
+        if os.path.isfile(sexp_loc) and not force:
             raise RuntimeError('File to generate: {} exists'.format(sexp_loc))
 
         sexp_filename = os.path.basename(sexp_loc)
         output_filename = os.path.abspath('{}/{}'.format(output_folder, sexp_filename))
-        if os.path.isfile(output_filename):
+        if os.path.isfile(output_filename) and not force:
             raise RuntimeError('File to generate: {} exists'.format(output_filename))
 
         if verbose:
@@ -158,7 +158,7 @@ class SystemCClangDriver(object):
             move_required = os.path.normpath(sexp_loc) != os.path.normpath(output_filename)
             if os.path.isfile(sexp_loc):
                 if move_required:
-                    move(sexp_loc, output_folder)
+                    move(sexp_loc, output_filename)
                 # subprocess.run('mv {} {}'.format(sexp_loc, output_folder), shell=True)
                 result.xlat_run = True
                 return result, output_filename
@@ -181,11 +181,11 @@ class SystemCClangDriver(object):
     Takes .cpp as input, generate .v
     If any step fails, an exeption will be thrown
     """
-    def generate_verilog(self, path, output_folder, verbose):
-        result, sexp_filename = self.generate_sexp(path, output_folder, keep_sexp=True, verbose=verbose)
+    def generate_verilog(self, path, output_folder, verbose, force=False):
+        result, sexp_filename = self.generate_sexp(path, output_folder, keep_sexp=True, verbose=verbose, force=force)
         if result.xlat_run:
             assert os.path.isfile(sexp_filename), 'Cannot find generated sexp_filename: {}'.format(sexp_filename)
-            result_verilog, v_filename = self.generate_verilog_from_sexp(sexp_filename, output_folder, keep_v=True, verbose=verbose)
+            result_verilog, v_filename = self.generate_verilog_from_sexp(sexp_filename, output_folder, keep_v=True, verbose=verbose, force=force)
             result.convert_run = result_verilog.convert_run
             result.convert_syntax = result_verilog.convert_syntax
             result.convert_transform = result_verilog.convert_transform
