@@ -107,8 +107,10 @@ l = Lark('''
         hmethodcall: "hMethodCall" hidorstr  "[" expression expression* "]" 
         ?hidorstr: ID | STRING
         hliteral:  "hLiteral" ID "NOLIST"
-        htypeinfo: "hTypeinfo" "NONAME" "[" htype+ "]"
+        htypeinfo: "hTypeinfo" "NONAME" "[" htype "]"
                  | "hTypeinfo" "NONAME" "NOLIST" // ?
+                 | hscbv
+        hscbv    : "hTypeinfo" "NONAME" "[" "hType" "sc_bv" "NOLIST"  "hType" NUM "NOLIST" "]" // TODO: for legacy format, to be removed
         htype: "hType" TYPESTR "NOLIST" 
              | "hType" TYPESTR "[" htype+ "]"     // nested types
              | "hType" "unsigned" "int" "NOLIST"  // a work around, should be surrounded with quotes
@@ -208,25 +210,40 @@ class sc_in(object):
     def __init__(self, T):
         self.T = T
 
-    def to_str(self, context=None):
-        return 'input {}'.format(self.T.to_str(context='sc_in'))
+    def to_str(self, var_name, context=None):
+        if var_name:
+            return 'input {} {}'.format(self.T.to_str(var_name=None, context='sc_in'), var_name)
+        else:
+            return 'input {}'.format(self.T.to_str(context='sc_in'))
 
 
 class sc_out(object):
     def __init__(self, T):
         self.T = T
 
-    def to_str(self, context=None):
-        return 'output {}'.format(self.T.to_str(context='sc_out'))
+    def to_str(self, var_name, context=None):
+        if var_name:
+            return 'output {} {}'.format(self.T.to_str(var_name=None, context='sc_out'), var_name)
+        else:
+            return 'output {}'.format(self.T.to_str(context='sc_out'))
 
+class sc_bv(object):
+    def __init__(self, width):
+        self.width = width
+
+    def to_str(self, var_name, context=None):
+        if var_name:
+            return f'logic [{self.width-1}:0] {var_name};'
+        else:
+            return f'logic [{self.width-1}:0]'
 
 class sc_uint(object):
     def __init__(self, width):
         self.width = width
 
-    def to_str(self, context=None):
-        if context == 'sc_signal':
-            return f'logic [{self.width-1}:0]'
+    def to_str(self, var_name, context=None):
+        if var_name:
+            return f'logic [{self.width-1}:0] {var_name};'
         else:
             return f'logic [{self.width-1}:0]'
 
@@ -234,9 +251,9 @@ class sc_int(object):
     def __init__(self, width):
         self.width = width
 
-    def to_str(self, context=None):
-        if context == 'sc_signal':
-            return f'logic [{self.width-1}:0]'
+    def to_str(self, var_name, context=None):
+        if var_name:
+            return f'logic [{self.width-1}:0] {var_name};'
         else:
             return f'logic [{self.width-1}:0]'
 
@@ -245,8 +262,8 @@ class sc_signal(object):
     def __init__(self, T):
         self.T = T
 
-    def to_str(self, context=None):
-        return self.T.to_str(context='sc_signal')
+    def to_str(self, var_name, context=None):
+        return self.T.to_str(var_name, context='sc_signal')
 
 
 class cppbool(object):
@@ -263,6 +280,17 @@ class cppuint(object):
     def __new__(cls):
         return sc_uint(32)
 
+
+class vmodule(object):
+    def __init__(self, type_name, port_bindings=None):
+        self.type_name = type_name
+        self.port_bindings = port_bindings
+
+    def to_str(self, var_name, context=None):
+        warnings.warn('port binding not fully implemented')
+        binding_str = ',\n'.join(f'.{b[0]}({b[1]})' for b in self.port_bindings)
+        return f'{self.type_name} {var_name}(\n{binding_str}\n/* port bindings not fully implemented */);'
+
 # aggregated type?
 
 
@@ -273,8 +301,9 @@ class CType(object):
         self.var_name = var_name
         self.type_info = type_info
 
+
     @staticmethod
-    def type_from_str(type_name, *params):
+    def type_from_str(type_name, *params, **kwargs):
         if type_name == '_Bool':
             return cppbool()
         elif type_name == 'unsigned int':
@@ -287,25 +316,30 @@ class CType(object):
             return sc_out(params[0])
         elif type_name == 'sc_uint':
             return sc_uint(params[0])
+        elif type_name == 'sc_int':
+            return sc_int(params[0])
+        elif type_name == 'sc_bv':
+            return sc_bv(params[0])
         elif type_name == 'sc_signal':
             return sc_signal(params[0])
         elif type(type_name) == type(0):
             return type_name
         else:
+            if 'types' in kwargs:
+                # TypeCollector
+                # TODO: the logic here is a temporary hack, should be changed later
+                types = kwargs['types']
+                res = types.is_module_type(type_name)
+                if res:
+                    port_bindings = types.get_port_bindings(res)
+                    return vmodule(res, port_bindings)
             raise
+
 
     def generate(self):
         print(self.var_name)
-        if self.node_type == 'hPortin':
-            return self.__as_port_in()
-        elif self.node_type == 'hPortout':
-            return self.__as_port_out()
-        elif self.node_type == 'hSigdecl':
-            return self.__as_signal()
-        elif self.node_type == 'hVardecl':
-            return self.__as_var_decl()
-        else:
-            assert False
+        assert len(self.type_info) == 1
+        return self.type_info[0].to_str(self.var_name)
 
     @staticmethod
     def get_width(type_info):
@@ -344,10 +378,6 @@ class CType(object):
         print('...', self.type_info)
         print('...', self.type_info[0].to_str() + ' ' + self.var_name)
         return self.type_info[0].to_str() + ' ' + self.var_name
-        flattened = CType.flatten(self.var_name, self.type_info)
-        print('flattend: ', flattened)
-        res = ',\n'.join(f'input logic [{p[1] - 1}:0] {p[0]}' for p in flattened)
-        return res
 
     def __as_port_out(self):
         print('...', self.type_info)
@@ -450,14 +480,72 @@ def flatten(L):
             yield item
 
 
+class TypeCollector(Transformer):
+    def __init__(self, skip=None, *args, **kwargs):
+        self.custom_types = dict()
+        self.module_types = dict()
+        self.current_bindings = []
+        pass
+
+    
+    def is_module_type(self, name):
+        for key, _ in self.module_types.items():
+            if key.startswith(str(name)):
+                return key
+        return None
+
+    def get_port_bindings(self, name, parent=None):
+        # TODO: fix the portbinding hack
+        # list of port bindings
+        return self.module_types[name]
+
+
+    def is_custom_type(self, name):
+        return name in self.custom_types
+
+
+    @p
+    def htypedef(self, args):
+        type_name = self.custom_types[args[0]]
+        # The check should be done together with type parameters
+        if type_name in self.custom_types:
+            raise Exception('repeated type definition')
+        self.custom_types[args[0]] = True
+
+    @p
+    def hmodule(self, args):
+        # TODO: fix this hack
+        mod_name = str(args[0])
+        self.current_mod = mod_name
+        if mod_name in self.module_types:
+            raise Exception('repeated module definition')
+        self.module_types[mod_name] = []
+        self.module_types[mod_name].extend(self.current_bindings)
+        self.current_bindings = []
+
+    # TODO: fix this hack
+    def portbindinglist(self, args):
+        return args
+
+    def portbinding(self, args):
+        assert len(args) == 2
+        warnings.warn('Port binding not implmented: {} - {}'.format(args[0], args[1]))
+        self.current_bindings.append((str(args[0]), str(args[1])))
+        return None
+
+    def hvarref(self, args):
+        return args[0]
+
+
 
 class VerilogTransformer(Transformer):
 
-    def __init__(self, skip=None, *args, **kwargs):
+    def __init__(self, types, skip=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.vardecl_map = dict()
         self.global_type_map = dict()
         self.indent_width = 2
+        self.types = types
 
         if skip:
             self.skip = skip
@@ -478,6 +566,13 @@ class VerilogTransformer(Transformer):
         # res = CType2VerilogType.convert_type_list(args)
         # return res
         return args
+    
+    @p
+    def hscbv(self, args):
+        # TODO: remove this node
+        warnings.warn('hack for sc_bv, to be removed')
+        bw = int(args[0])
+        return CType.type_from_str('sc_bv', bw, types=self.types)
 
     def hliteral(self, args):
         return str(args[0])
@@ -525,7 +620,11 @@ class VerilogTransformer(Transformer):
     @p
     def hmethodcall(self, args):
         print("in hmethodcall, returning ", f'{args[0]}',"(", f'{",".join(args[1:])}', ")")
-        return (f'{args[0]}(' f'{",".join(args[1:])})')
+        method_name = args[0]
+        if method_name == 'sc_dtsc_proxysc_dtsc_bv_baseto_int':
+            warnings.warn(f'temporarily replacing sc_dtsc_proxysc_dtsc_bv_baseto_int with $signed')
+            method_name = '$signed'
+        return (f'{method_name}(' f'{",".join(args[1:])})')
 
     def stmts(self, args):
         return args
@@ -552,10 +651,10 @@ class VerilogTransformer(Transformer):
         # NOTE: args[0][1:-1] removes the quotes
         # return CType2VerilogType.convert(str(args[0]))
         # return str(args[0])
-        return CType.type_from_str(args[0], *args[1:])
+        return CType.type_from_str(args[0], *args[1:], types=self.types)
 
     def hunimp(self, args):
-        return f'\"//# Unimplemented: {args[0]}\"'
+        return f'//# Unimplemented: {args[0]}'
 
     @p
     def ifstmt(self, args):
@@ -628,6 +727,7 @@ class VerilogTransformer(Transformer):
         print("args: ", args)
         print("len(args): ", len(args))
         modname = str(args[0])
+
         if modname in self.skip:
             return ''
         print(modname)
@@ -660,13 +760,15 @@ class VerilogTransformer(Transformer):
 
         # for the processes
         procstr = proclist
+        if proclist is None:
+            procstr = ''
 
         res = (f"module {modname}(\n"
                 f"{portstr} \n"
                 f");\n"
                 f"{varstr}\n"
                 f"{sigstr}\n"
-                f"{proclist}\n"
+                f"{procstr}\n"
                 f"endmodule // {modname}"
                 )
         return res
@@ -848,6 +950,7 @@ class VerilogTransformer(Transformer):
         warnings.warn('Port binding not implmented: {} - {}'.format(args[0], args[1]))
         return None
 
+    @p
     def prevardecl(self, args):
         warnings.warn('prevardecl not implemented (currently using varinit)')
         return ""
@@ -896,7 +999,9 @@ def main():
         print(e)
         exit(2)  # This code has specific meanings, should be tested in the verilog tests
     try:
-        res = VerilogTransformer(skip=args.skip).transform(t)
+        type_collector = TypeCollector()
+        type_collector.transform(t)
+        res = VerilogTransformer(types=type_collector, skip=args.skip).transform(t)
     except Exception as e:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         print("***** print_exception:")
