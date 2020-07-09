@@ -1,4 +1,4 @@
-- 1. Sensitivity list
+# 1. Sensitivity list
 
     The sensitivity list in `find_emax`is:
 
@@ -69,10 +69,10 @@
     ]
     ```
 
-- 2. Module name
+# 2. Module name
     - Currently it is instance name (for example, `find_emax` vs `u_dut`)
 
-- 3. Module parameter is currently not used, for example: `fp_t` for `find_emax`
+# 3. Module parameter is currently not used, for example: `fp_t` for `find_emax`
 
 ```verilog
         hVardecl u_dut [
@@ -88,22 +88,22 @@
         ]
 ```
 
-- 4. In sreg: CXXTemporaryObjectExpr
+# 4. In sreg: CXXTemporaryObjectExpr
 
 ```verilog
-169     if (reset == RLEV) {
-170       for (unsigned i = 0; i < depth; i++) data[i] = T();
+   if (reset == RLEV) {
+     for (unsigned i = 0; i < depth; i++) data[i] = T();
 
-7                   hBinop = [
-6                     hBinop ARRAYSUBSCRIPT [
-5                       hLiteral data NOLIST
-4                       hVarref _XLAT_2 NOLIST
-3                     ]
-2                     hUnimpl CXXTemporaryObjectExpr NOLIST
-1                   ]
+               hBinop = [
+                 hBinop ARRAYSUBSCRIPT [
+                   hLiteral data NOLIST
+                   hVarref _XLAT_2 NOLIST
+                 ]
+                 hUnimpl CXXTemporaryObjectExpr NOLIST
+               ]
 ```
 
-- 5. For statement
+# 5. For statement
 
 ```verilog
 hForStmt  NONAME [
@@ -125,7 +125,7 @@ hForStmt  NONAME [
 ]
 ```
 
-- 6. The `hPortbindings` in rvfifo_cc, the `data`, `valid`
+# 6. The `hPortbindings` in `rvfifo_cc`, the `data`, `valid`
 
 ```verilog
 rvfifo_cc(const sc_module_name& mn_, int size_ = MAX_DEPTH) :
@@ -178,7 +178,7 @@ hPortbindings u_fifo [
 ]
 ```
 
-- 7. The `expo` has no qualifier (`_XLAT_1`)
+# 7. The `expo` has no qualifier (`_XLAT_1`)
 
 ```verilog
 expo_t expo;
