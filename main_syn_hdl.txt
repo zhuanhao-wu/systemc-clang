@@ -1,0 +1,285 @@
+  hModule _sc_module_0 [
+    hPortsigvarlist  NONAME [
+      hPortin clk [
+        hTypeinfo  NONAME [
+          hType sc_in [
+            hType _Bool NOLIST
+          ]
+        ]
+      ]
+      hPortin i_data [
+        hTypeinfo  NONAME [
+          hType sc_in [
+            hType sc_bv [
+              hLiteral 8 NOLIST
+            ]
+          ]
+        ]
+      ]
+      hPortout o_data [
+        hTypeinfo  NONAME [
+          hType sc_out [
+            hType sc_bv [
+              hLiteral 8 NOLIST
+            ]
+          ]
+        ]
+      ]
+      hSigdecl sum2 [
+        hTypeinfo  NONAME [
+          hType sc_signal [
+            hType sc_bv [
+              hLiteral 8 NOLIST
+            ]
+          ]
+        ]
+      ]
+      hSigdecl sum3 [
+        hTypeinfo  NONAME [
+          hType sc_signal [
+            hType sc_bv [
+              hLiteral 8 NOLIST
+            ]
+          ]
+        ]
+      ]
+      hSigdecl tap0 [
+        hTypeinfo  NONAME [
+          hType sc_signal [
+            hType sc_bv [
+              hLiteral 8 NOLIST
+            ]
+          ]
+        ]
+      ]
+      hSigdecl tap1 [
+        hTypeinfo  NONAME [
+          hType sc_signal [
+            hType sc_bv [
+              hLiteral 8 NOLIST
+            ]
+          ]
+        ]
+      ]
+      hSigdecl tap2 [
+        hTypeinfo  NONAME [
+          hType sc_signal [
+            hType sc_bv [
+              hLiteral 8 NOLIST
+            ]
+          ]
+        ]
+      ]
+      hSigdecl tap3 [
+        hTypeinfo  NONAME [
+          hType sc_signal [
+            hType sc_bv [
+              hLiteral 8 NOLIST
+            ]
+          ]
+        ]
+      ]
+      hVardecl coef1 [
+        hTypeinfo  NONAME [
+          hType int NOLIST
+        ]
+      ]
+      hVardecl coef2 [
+        hTypeinfo  NONAME [
+          hType int NOLIST
+        ]
+      ]
+      hVardecl coef3 [
+        hTypeinfo  NONAME [
+          hType int NOLIST
+        ]
+      ]
+      hVardecl prod1 [
+        hTypeinfo  NONAME [
+          hType int NOLIST
+        ]
+      ]
+      hVardecl prod2 [
+        hTypeinfo  NONAME [
+          hType int NOLIST
+        ]
+      ]
+      hVardecl prod3 [
+        hTypeinfo  NONAME [
+          hType int NOLIST
+        ]
+      ]
+    ]
+    hProcesses  NONAME [
+      hProcess first_function [
+        hSenslist  NONAME [
+          hSensvar i_data NOLIST
+        ]
+        hMethod  NONAME [
+          hCStmt  NONAME [
+            hSigAssignL write [
+              hVarref tap0 NOLIST
+              hSigAssignR read [
+                hVarref i_data NOLIST
+              ]
+            ]
+          ]
+        ]
+      ]
+      hProcess second_function [
+        hSenslist  NONAME [
+          hSensvar clk [
+            hSensvar pos NOLIST
+          ]
+        ]
+        hMethod  NONAME [
+          hCStmt  NONAME [
+            hSigAssignL write [
+              hVarref tap1 NOLIST
+              hSigAssignR read [
+                hVarref tap0 NOLIST
+              ]
+            ]
+            hSigAssignL write [
+              hVarref tap2 NOLIST
+              hSigAssignR read [
+                hVarref tap1 NOLIST
+              ]
+            ]
+            hSigAssignL write [
+              hVarref tap3 NOLIST
+              hSigAssignR read [
+                hVarref tap2 NOLIST
+              ]
+            ]
+          ]
+        ]
+      ]
+      hProcess third_function [
+        hSenslist  NONAME [
+          hSensvar tap1 NOLIST
+          hSensvar tap2 NOLIST
+          hSensvar tap3 NOLIST
+        ]
+        hMethod  NONAME [
+          hVardecl _local_0 [
+            hTypeinfo  NONAME [
+              hType sc_bv [
+                hLiteral 8 NOLIST
+              ]
+            ]
+            hVarInit  NONAME [
+              hSigAssignR read [
+                hVarref tap1 NOLIST
+              ]
+            ]
+          ]
+          hVardecl _local_1 [
+            hTypeinfo  NONAME [
+              hType sc_bv [
+                hLiteral 8 NOLIST
+              ]
+            ]
+            hVarInit  NONAME [
+              hSigAssignR read [
+                hVarref tap2 NOLIST
+              ]
+            ]
+          ]
+          hVardecl _local_2 [
+            hTypeinfo  NONAME [
+              hType sc_bv [
+                hLiteral 8 NOLIST
+              ]
+            ]
+            hVarInit  NONAME [
+              hSigAssignR read [
+                hVarref tap3 NOLIST
+              ]
+            ]
+          ]
+          hVardecl _local_3 [
+            hTypeinfo  NONAME [
+              hType int NOLIST
+            ]
+            hVarInit  NONAME [
+              hBinop + [
+                hVarref prod1 NOLIST
+                hVarref prod2 NOLIST
+              ]
+            ]
+          ]
+          hVardecl _local_4 [
+            hTypeinfo  NONAME [
+              hType int NOLIST
+            ]
+            hVarInit  NONAME [
+              hBinop + [
+                hBinop + [
+                  hVarref prod1 NOLIST
+                  hVarref prod2 NOLIST
+                ]
+                hVarref prod3 NOLIST
+              ]
+            ]
+          ]
+          hCStmt  NONAME [
+            hBinop = [
+              hVarref coef1 NOLIST
+              hLiteral 2 NOLIST
+            ]
+            hBinop = [
+              hVarref coef2 NOLIST
+              hLiteral 2 NOLIST
+            ]
+            hBinop = [
+              hVarref coef3 NOLIST
+              hLiteral 2 NOLIST
+            ]
+            hBinop = [
+              hVarref prod1 NOLIST
+              hBinop * [
+                hMethodCall sc_dtsc_proxysc_dtsc_bv_baseto_int [
+                  hVarref _local_0 NOLIST
+                ]
+                hVarref coef1 NOLIST
+              ]
+            ]
+            hBinop = [
+              hVarref prod2 NOLIST
+              hBinop * [
+                hMethodCall sc_dtsc_proxysc_dtsc_bv_baseto_int [
+                  hVarref _local_1 NOLIST
+                ]
+                hVarref coef2 NOLIST
+              ]
+            ]
+            hBinop = [
+              hVarref prod3 NOLIST
+              hBinop * [
+                hMethodCall sc_dtsc_proxysc_dtsc_bv_baseto_int [
+                  hVarref _local_2 NOLIST
+                ]
+                hVarref coef3 NOLIST
+              ]
+            ]
+            hUnimpl  NONAME NOLIST
+            hSigAssignL write [
+              hVarref sum2 NOLIST
+              hVarref _local_3 NOLIST
+            ]
+            hSigAssignL write [
+              hVarref sum3 NOLIST
+              hVarref _local_4 NOLIST
+            ]
+            hBinop = [
+              hVarref o_data NOLIST
+              hSigAssignR read [
+                hVarref sum3 NOLIST
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]

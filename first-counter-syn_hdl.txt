@@ -1,0 +1,95 @@
+  hModule _sc_module_0 [
+    hPortsigvarlist  NONAME [
+      hPortin clock [
+        hTypeinfo  NONAME [
+          hType sc_in [
+            hType _Bool NOLIST
+          ]
+        ]
+      ]
+      hPortin reset [
+        hTypeinfo  NONAME [
+          hType sc_in [
+            hType _Bool NOLIST
+          ]
+        ]
+      ]
+      hPortin enable [
+        hTypeinfo  NONAME [
+          hType sc_in [
+            hType _Bool NOLIST
+          ]
+        ]
+      ]
+      hPortout counter_out [
+        hTypeinfo  NONAME [
+          hType sc_out [
+            hType sc_uint [
+              hLiteral 4 NOLIST
+            ]
+          ]
+        ]
+      ]
+      hVardecl count [
+        hTypeinfo  NONAME [
+          hType sc_uint [
+            hLiteral 4 NOLIST
+          ]
+        ]
+      ]
+    ]
+    hProcesses  NONAME [
+      hProcess incr_count [
+        hSenslist  NONAME [
+          hSensvar clock [
+            hSensvar pos NOLIST
+          ]
+          hSensvar reset NOLIST
+        ]
+        hMethod  NONAME [
+          hCStmt  NONAME [
+            hIfStmt  NONAME [
+              hBinop == [
+                hSigAssignR read [
+                  hVarref reset NOLIST
+                ]
+                hLiteral 1 NOLIST
+              ]
+              hCStmt  NONAME [
+                hBinop = [
+                  hVarref count NOLIST
+                  hLiteral 0 NOLIST
+                ]
+                hSigAssignL write [
+                  hVarref counter_out NOLIST
+                  hVarref count NOLIST
+                ]
+              ]
+              hIfStmt  NONAME [
+                hBinop == [
+                  hSigAssignR read [
+                    hVarref enable NOLIST
+                  ]
+                  hLiteral 1 NOLIST
+                ]
+                hCStmt  NONAME [
+                  hBinop = [
+                    hVarref count NOLIST
+                    hBinop + [
+                      hVarref count NOLIST
+                      hLiteral 1 NOLIST
+                    ]
+                  ]
+                  hSigAssignL write [
+                    hVarref counter_out NOLIST
+                    hVarref count NOLIST
+                  ]
+                  hUnimpl  NONAME NOLIST
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
