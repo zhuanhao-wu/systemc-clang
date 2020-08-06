@@ -1,4 +1,4 @@
-module mymodule (
+module _sc_module_0 (
 );
   logic [0:0] clk;
   logic [0:0] reset;
@@ -15,7 +15,7 @@ module mymodule (
   logic [10:0] c_dut_expo_data;
   logic [0:0] c_dut_expo_valid;
   logic [0:0] c_dut_expo_ready;
-  find_emax u_dut(
+  _sc_module_1 u_dut(
     .clk(clk),
     .m_ex_data(c_dut_expo_data),
     .m_ex_valid(c_dut_expo_valid),
@@ -33,7 +33,7 @@ module mymodule (
     .s_fp_ready(c_tb_send_fp_ready)
   );
 endmodule
-module u_dut (
+module _sc_module_1 (
   input logic [0:0] clk,
   input logic [0:0] reset,
   input logic [51:0] s_fp_data_frac,
@@ -62,7 +62,7 @@ module u_dut (
   logic [10:0] c_ex_data;
   logic [0:0] c_ex_valid;
   logic [0:0] c_ex_ready;
-  rvfifo_cc u_que_fp(
+  _sc_module_2 u_que_fp(
     .clk(clk),
     .m_port_data_frac(m_fp_data_frac),
     .m_port_data_expo(m_fp_data_expo),
@@ -76,7 +76,7 @@ module u_dut (
     .s_port_valid(c_fp_valid),
     .s_port_ready(c_fp_ready)
   );
-  sreg u_reg_ex(
+  _sc_module_3 u_reg_ex(
     .clk(clk),
     .m_port_data(m_ex_data),
     .m_port_valid(m_ex_valid),
@@ -86,7 +86,7 @@ module u_dut (
     .s_port_valid(c_ex_valid),
     .s_port_ready(c_ex_ready)
   );
-  always @(c_ex_ready or c_fp_ready or c_sync or emax or emax_v or reset or s_fp_data or s_fp_valid) begin: mc_proc
+  always @(c_ex_ready or c_fp_ready or c_sync or emax or emax_v or s_fp_data_frac or s_fp_data_expo or s_fp_data_sign or s_fp_valid) begin: mc_proc
     
     
     s_fp_ready = c_sync;
@@ -99,24 +99,29 @@ module u_dut (
     c_sync = ((s_fp_valid) && (c_fp_ready)) && ((!(emax_v)) || (c_ex_ready));
   end
   always @(posedge clk) begin: ms_proc
-    logic [0:0] _XLAT_0;
-    logic [51:0] _XLAT_1_frac;
-    logic [10:0] _XLAT_2;
-    _XLAT_0 = (count) == (0);
-    _XLAT_1_frac = s_fp_data_frac;
+    logic [0:0] _local_0;
+    logic [51:0] _local_1_frac;
+    logic [10:0] _local_1_expo;
+    logic [0:0] _local_1_sign;
+    logic [10:0] _local_2;
+    
     if ((reset) == (0)) begin
       count = (1) - (1);
       emax = 0;
       emax_v = 0;
     end else begin
-      if (((expo) == (0)) && ((frac) == (0))) begin
-        _XLAT_2 = expo;
+      _local_0 = (count) == (0);
+      _local_1_frac = s_fp_data_frac;
+      _local_1_expo = s_fp_data_expo;
+      _local_1_sign = s_fp_data_sign;
+      if (((_local_1_expo) == (0)) && ((_local_1_frac) == (0))) begin
+        _local_2 = _local_1_expo;
       end else begin
-        _XLAT_2 = (expo) + (1);
+        _local_2 = (_local_1_expo) + (1);
       end
 
       if (c_sync) begin
-        if (_XLAT_0) begin
+        if (_local_0) begin
           count = (1) - (1);
         end else begin
           count = (count) - (1);
@@ -125,21 +130,21 @@ module u_dut (
       end
       if ((emax_v) && (c_ex_ready)) begin
         if (s_fp_valid) begin
-          emax = _XLAT_2;
+          emax = _local_2;
         end else begin
           emax = 0;
         end
 
       end else begin
-        if ((s_fp_valid) && ((_XLAT_2) == (emax))) begin
-          emax = _XLAT_2;
+        if ((s_fp_valid) && ((_local_2) == (emax))) begin
+          emax = _local_2;
         end
       end
 
       if ((emax_v) && (c_ex_ready)) begin
         emax_v = 0;
       end else begin
-        if ((c_sync) && (_XLAT_0)) begin
+        if ((c_sync) && (_local_0)) begin
           emax_v = 1;
         end
       end
@@ -148,7 +153,7 @@ module u_dut (
 
   end
 endmodule
-module u_que_fp (
+module _sc_module_2 (
   input logic [0:0] clk,
   input logic [0:0] reset,
   input logic [51:0] s_port_data_frac,
@@ -163,18 +168,22 @@ module u_que_fp (
   input logic [0:0] m_port_ready
 );
   logic [31:0] MAX_DEPTH = 8;
-  fifo_cc u_fifo(
+  _sc_module_4 u_fifo(
     .clk(clk),
-    .din(data),
-    .dout(data),
-    .empty(valid),
-    .full(ready),
-    .rd_en(ready),
+    .din_frac(s_port_data_frac),
+    .din_expo(s_port_data_expo),
+    .din_sign(s_port_data_sign),
+    .dout_frac(m_port_data_frac),
+    .dout_expo(m_port_data_expo),
+    .dout_sign(m_port_data_sign),
+    .empty(m_port_valid),
+    .full(s_port_ready),
+    .rd_en(m_port_ready),
     .reset(reset),
-    .wr_en(valid)
+    .wr_en(s_port_valid)
   );
 endmodule
-module u_fifo (
+module _sc_module_4 (
   input logic [0:0] clk,
   input logic [0:0] reset,
   input logic [51:0] din_frac,
@@ -212,23 +221,23 @@ module u_fifo (
     full = (full_i) == (0);
     empty = (empty_i) == (0);
   end
-  always @(posedge clk or empty_i or full_i or rd_en or rd_idx or wr_en) begin: ms_proc
-    logic [2:0] _XLAT_0;
-    logic [2:0] _XLAT_1;
-    logic [31:0] _XLAT_2;
-    _XLAT_2 = 0;
-    _XLAT_0 = ((wr_idx) + (1)) % (depth);
-    _XLAT_1 = ((rd_idx) + (1)) % (depth);
+  always @(posedge clk) begin: ms_proc
+    logic [2:0] _local_0;
+    logic [2:0] _local_1;
+    logic [31:0] _local_2;
+    
+    _local_0 = ((wr_idx) + (1)) % (depth);
+    _local_1 = ((rd_idx) + (1)) % (depth);
     if ((reset) == (0)) begin
       if (!(1)) begin
         dout_frac = 0;
         dout_expo = 0;
         dout_sign = 0;
       end
-      for (;(_XLAT_2) < (depth);_XLAT_2 = _XLAT_2 + 1) begin
-        data_frac[_XLAT_2] = 0;
-        data_expo[_XLAT_2] = 0;
-        data_sign[_XLAT_2] = 0;
+      for (_local_2 = 0;(_local_2) < (depth);_local_2 = _local_2 + 1) begin
+        data_frac[_local_2] = 0;
+        data_expo[_local_2] = 0;
+        data_sign[_local_2] = 0;
       end
       rd_idx = 0;
       wr_idx = 0;
@@ -246,19 +255,19 @@ module u_fifo (
         data_frac[wr_idx] = din_frac;
         data_expo[wr_idx] = din_expo;
         data_sign[wr_idx] = din_sign;
-        wr_idx = _XLAT_0;
+        wr_idx = _local_0;
         if (!(rd_en_i)) begin
-          if ((_XLAT_0) == (rd_idx)) begin
+          if ((_local_0) == (rd_idx)) begin
             full_i = 1;
           end
           empty_i = 0;
         end
       end
       if (rd_en_i) begin
-        rd_idx = _XLAT_1;
+        rd_idx = _local_1;
         if (!(wr_en_i)) begin
           full_i = 0;
-          if ((_XLAT_1) == (wr_idx)) begin
+          if ((_local_1) == (wr_idx)) begin
             empty_i = 1;
           end
         end
@@ -267,7 +276,7 @@ module u_fifo (
 
   end
 endmodule
-module u_reg_ex (
+module _sc_module_3 (
   input logic [0:0] clk,
   input logic [0:0] reset,
   input logic [10:0] s_port_data,
@@ -286,7 +295,7 @@ module u_reg_ex (
   logic [0:0] wr_idx;
   logic [31:0] IW = 1;
   logic [31:0] depth = 2;
-  always @(empty_i or full_i or m_port_valid or rd_idx or s_port_valid) begin: mc_proc
+  always @(empty_i or full_i or m_port_ready or rd_idx or s_port_valid) begin: mc_proc
     
     
     m_port_data = data[rd_idx];
@@ -296,15 +305,15 @@ module u_reg_ex (
     m_port_valid = !(empty_i);
   end
   always @(posedge clk) begin: ms_proc
-    logic [0:0] _XLAT_0;
-    logic [0:0] _XLAT_1;
-    logic [31:0] _XLAT_2;
-    _XLAT_2 = 0;
-    _XLAT_0 = ((wr_idx) + (1)) % (depth);
-    _XLAT_1 = ((rd_idx) + (1)) % (depth);
+    logic [0:0] _local_0;
+    logic [0:0] _local_1;
+    logic [31:0] _local_2;
+    
+    _local_0 = ((wr_idx) + (1)) % (depth);
+    _local_1 = ((rd_idx) + (1)) % (depth);
     if ((reset) == (0)) begin
-      for (;(_XLAT_2) < (depth);_XLAT_2 = _XLAT_2 + 1) begin
-        data[_XLAT_2] = Tree(hunimp, [Token(ID, 'CXXTemporaryObjectExpr')]);
+      for (_local_2 = 0;(_local_2) < (depth);_local_2 = _local_2 + 1) begin
+        data[_local_2] = 0;
       end
       rd_idx = 0;
       wr_idx = 0;
@@ -313,19 +322,19 @@ module u_reg_ex (
     end else begin
       if (wr_en_i) begin
         data[wr_idx] = s_port_data;
-        wr_idx = _XLAT_0;
+        wr_idx = _local_0;
         if (!(rd_en_i)) begin
-          if ((_XLAT_0) == (rd_idx)) begin
+          if ((_local_0) == (rd_idx)) begin
             full_i = 1;
           end
           empty_i = 0;
         end
       end
       if (rd_en_i) begin
-        rd_idx = _XLAT_1;
+        rd_idx = _local_1;
         if (!(wr_en_i)) begin
           full_i = 0;
-          if ((_XLAT_1) == (wr_idx)) begin
+          if ((_local_1) == (wr_idx)) begin
             empty_i = 1;
           end
         end
@@ -334,3 +343,4 @@ module u_reg_ex (
 
   end
 endmodule
+
