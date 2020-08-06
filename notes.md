@@ -30,7 +30,7 @@ SC_MODULE(fwd_cast)
 
 # 2. Line 123 (depth has no value)
 
-[https://github.com/anikau31/systemc-clang/blob/master/examples/llnl-examples/zfpsynth/shared/fifo_cc.h#L123](https://github.com/anikau31/systemc-clang/blob/master/examples/llnl-examples/zfpsynth/shared/fifo_cc.h#L123)
+[https://github.com/anikau31/systemc-clang/blob/master/examples/llnl-examples/zfpsynth/shared/fifo_cc.h#L121](https://github.com/anikau31/systemc-clang/blob/master/examples/llnl-examples/zfpsynth/shared/fifo_cc.h#L123)
 
 ```python
 hVardecl depth [
@@ -57,9 +57,10 @@ hSigdecl data [
 ]
 ```
 
-# 5. `fpblk_sz(DIM)` should be 3
+# 4. `fpblk_sz(DIM)` should be 3
 
 [https://github.com/anikau31/systemc-clang/blob/master/examples/llnl-examples/zfpsynth/shared/zfp.h#L153](https://github.com/anikau31/systemc-clang/blob/master/examples/llnl-examples/zfpsynth/shared/zfp.h#L153)
+[https://github.com/anikau31/systemc-clang/blob/master/examples/llnl-examples/zfpsynth/shared/zfp.h#L24](https://github.com/anikau31/systemc-clang/blob/master/examples/llnl-examples/zfpsynth/shared/zfp.h#L24)
 
 ```python
 hBinop = [
